@@ -2,16 +2,17 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useSelector, useDispatch } from "react-redux";
 import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage";
+import userReducer from "../features/userSlice";
 
 const presistConfig = {
   key: "root",
   storage,
-  whitelist: [""],
+  whitelist: [], // Không lưu dữ liệu nào vào localStorage
 };
 
 // Create a hook for using TypedUseSelectorHook
 const rootReducer = combineReducers({
-  // Add your reducers here
+  user: userReducer,
 });
 
 const persistedReducer = persistReducer(presistConfig, rootReducer);
