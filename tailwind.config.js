@@ -15,6 +15,11 @@ module.exports = {
   			'2xl': '1400px'
   		}
   	},
+  	fontFamily: {
+  		sans: ['Inter', 'Poppins', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+  		inter: ['Inter', 'sans-serif'],
+  		poppins: ['Poppins', 'sans-serif'],
+  	},
   	extend: {
   		colors: {
   			border: 'hsl(var(--border))',
