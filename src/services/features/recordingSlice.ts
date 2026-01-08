@@ -10,8 +10,8 @@ export interface Recording {
   RecordingID: string;
   PersonID: string;
   SentenceID: string;
-  AudioUrl: string;
-  IsApproved: boolean;
+  AudioUrl: string | null;
+  IsApproved: boolean | null;
   RecordedAt: string;
 }
 
@@ -35,9 +35,32 @@ export const getRecordings = async (): Promise<Recording[]> => {
   }
 };
 
-export const uploadRecording = async (formData: FormData): Promise<Recording> => {
+export interface UploadRecordingResponse {
+  success: boolean;
+  message: string;
+  data: {
+    personId: string;
+    sentenceId: string;
+    audioUrl: string;
+    isApproved: boolean;
+    recordedAt: string;
+    _id: string;
+    __v: number;
+  };
+}
+
+export const uploadRecording = async (
+  audioBlob: Blob,
+  personId: string,
+  sentenceId: string
+): Promise<UploadRecordingResponse> => {
   try {
-    const response = await axiosInstance.post<Recording>("recordings", formData, {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.webm');
+    formData.append('personId', personId);
+    formData.append('sentenceId', sentenceId);
+
+    const response = await axiosInstance.post<UploadRecordingResponse>("recordings", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

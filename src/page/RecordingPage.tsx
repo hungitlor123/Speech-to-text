@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Typography, Tag, Input } from 'antd';
+import { Button, Typography, Tag, Input, message, Spin } from 'antd';
 import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, StopOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
-import { setCurrentSentence, addRecording, setCurrentRecordingIndex, setIsRecording, setRecordingTime } from '@/services/features/userSlice';
+import { 
+  setCurrentSentence, 
+  setCurrentSentenceId,
+  addRecording, 
+  setCurrentRecordingIndex, 
+  setIsRecording, 
+  setRecordingTime,
+  fetchAvailableSentences
+} from '@/services/features/userSlice';
+import { uploadRecording } from '@/services/features/recordingSlice';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import AudioWaveform from '@/components/AudioWaveform';
 import { cn } from '@/lib/utils';
@@ -11,22 +20,22 @@ import { clearPersistedUserData } from '@/lib/storageUtils';
 
 const { Title, Text } = Typography;
 
-// Câu mẫu để người dùng đọc
-const SAMPLE_SENTENCES = [
-  'Mình update cái file này lên drive nha',
-  'Xin chào, tôi là người dùng mới',
-  'Hôm nay trời đẹp quá',
-  'Tôi đang học lập trình',
-  'Cảm ơn bạn đã giúp đỡ',
-];
-
 const RecordingPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { userInfo, recordings, currentRecordingIndex, currentSentence } = useAppSelector((state) => state.user);
+  const { 
+    userInfo, 
+    recordings, 
+    currentRecordingIndex, 
+    currentSentence,
+    currentSentenceId,
+    availableSentences,
+    loadingSentences
+  } = useAppSelector((state) => state.user);
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [customSentence, setCustomSentence] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -56,10 +65,19 @@ const RecordingPage: React.FC = () => {
       return;
     }
 
-    if (!currentSentence && SAMPLE_SENTENCES.length > 0 && mode === 'existing') {
-      dispatch(setCurrentSentence(SAMPLE_SENTENCES[0]));
+    // Fetch available sentences when component mounts or userInfo changes
+    if (userInfo?.guestId && mode === 'existing') {
+      dispatch(fetchAvailableSentences(userInfo.guestId));
     }
-  }, [userInfo, currentSentence, dispatch, navigate, mode]);
+  }, [userInfo, dispatch, navigate, mode]);
+
+  // Update current sentence when availableSentences changes
+  useEffect(() => {
+    if (availableSentences.length > 0 && mode === 'existing' && !currentSentence) {
+      dispatch(setCurrentSentence(availableSentences[0].Content));
+      dispatch(setCurrentSentenceId(availableSentences[0].SentenceID));
+    }
+  }, [availableSentences, mode, currentSentence, dispatch]);
 
   useEffect(() => {
     dispatch(setIsRecording(isRecording));
@@ -78,39 +96,105 @@ const RecordingPage: React.FC = () => {
     stopRecording();
   };
 
-  const handleSaveRecording = () => {
-    if (audioBlob && audioUrl && currentSentence) {
-      const duration = recordingTime;
-      dispatch(
-        addRecording({
-          sentence: currentSentence,
+  const handleSaveRecording = async () => {
+    if (!audioBlob || !audioUrl || !currentSentence) {
+      return;
+    }
+
+    if (!userInfo?.guestId) {
+      message.error('Không tìm thấy thông tin người dùng');
+      return;
+    }
+
+    // For existing mode, we need sentenceId
+    if (mode === 'existing' && !currentSentenceId) {
+      message.error('Không tìm thấy ID câu');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      if (mode === 'existing' && currentSentenceId) {
+        // Upload recording for existing sentence
+        const response = await uploadRecording(
           audioBlob,
-          audioUrl,
-          duration,
-        })
-      );
-      
+          userInfo.guestId,
+          currentSentenceId
+        );
+
+        if (response.success) {
+          message.success('Ghi âm đã được lưu thành công!');
+          
+          const duration = recordingTime;
+          dispatch(
+            addRecording({
+              sentence: currentSentence,
+              sentenceId: currentSentenceId,
+              audioBlob,
+              audioUrl,
+              duration,
+            })
+          );
+
+          // Check if user has completed 2 recordings
+          if (recordings.length + 1 >= 2) {
+            // User has completed 2 recordings, go to thank you page
+            setTimeout(() => {
+              navigate('/thank-you');
+            }, 500);
+          } else {
+            // Refresh available sentences to get updated list and move to next sentence
+            if (userInfo?.guestId) {
+              const updatedSentences = await dispatch(fetchAvailableSentences(userInfo.guestId)).unwrap();
+              
+              if (updatedSentences.length > 0) {
+                // Move to next available sentence
+                const nextSentence = updatedSentences[0];
+                dispatch(setCurrentSentence(nextSentence.Content));
+                dispatch(setCurrentSentenceId(nextSentence.SentenceID));
+                dispatch(setCurrentRecordingIndex(recordings.length + 1));
+              } else {
+                // No more sentences available
+                setTimeout(() => {
+                  navigate('/thank-you');
+                }, 500);
+              }
+            }
+          }
+        }
+      } else {
+        // For new mode, just save locally (no API call for custom sentences)
+        const duration = recordingTime;
+        dispatch(
+          addRecording({
+            sentence: currentSentence,
+            audioBlob,
+            audioUrl,
+            duration,
+          })
+        );
+
+        if (recordings.length + 1 >= 2) {
+          setTimeout(() => {
+            navigate('/thank-you');
+          }, 500);
+        } else {
+          // Keep the same custom sentence
+          dispatch(setCurrentSentence(customSentence.trim()));
+        }
+      }
+
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
       setIsPlaying(false);
       resetRecording();
-      
-      if (recordings.length + 1 >= 2) {
-        setTimeout(() => {
-          navigate('/thank-you');
-        }, 500);
-      } else {
-        if (mode === 'existing') {
-          const nextIndex = (currentRecordingIndex + 1) % SAMPLE_SENTENCES.length;
-          dispatch(setCurrentRecordingIndex(nextIndex));
-          dispatch(setCurrentSentence(SAMPLE_SENTENCES[nextIndex]));
-        } else {
-          // Ở chế độ tạo câu mới, giữ nguyên câu người dùng nhập
-          dispatch(setCurrentSentence(customSentence.trim()));
-        }
-      }
+    } catch (error: any) {
+      console.error('Error uploading recording:', error);
+      message.error('Không thể tải lên ghi âm. Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -205,32 +289,46 @@ const RecordingPage: React.FC = () => {
         {mode === 'existing' && (
           <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
             <div className="bg-white rounded-[1rem] p-6 md:p-8 flex flex-col gap-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                    <BookOutlined className="text-blue-600" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold tracking-[0.18em] text-blue-500 uppercase">
-                      Câu gợi ý
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      Đọc to và rõ ràng theo đúng câu bên dưới
-                    </span>
-                  </div>
+              {loadingSentences ? (
+                <div className="flex justify-center items-center py-8">
+                  <Spin size="large" />
                 </div>
-                <Tag
-                  color="blue"
-                  className="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-full border-0 bg-blue-50 text-blue-600"
-                >
-                  {currentRecordingIndex + 1}/2
-                </Tag>
-              </div>
-              <div className="bg-gray-50 rounded-xl px-5 py-4 border border-gray-100">
-                <Text className="text-xl md:text-2xl text-gray-900 font-semibold leading-relaxed">
-                  {currentSentence}
-                </Text>
-              </div>
+              ) : availableSentences.length === 0 ? (
+                <div className="text-center py-8">
+                  <Text className="text-gray-500 text-lg">
+                    Không còn câu nào cần ghi âm. Cảm ơn bạn!
+                  </Text>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                        <BookOutlined className="text-blue-600" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold tracking-[0.18em] text-blue-500 uppercase">
+                          Câu gợi ý
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Đọc to và rõ ràng theo đúng câu bên dưới
+                        </span>
+                      </div>
+                    </div>
+                    <Tag
+                      color="blue"
+                      className="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-full border-0 bg-blue-50 text-blue-600"
+                    >
+                      {currentRecordingIndex + 1}/2
+                    </Tag>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl px-5 py-4 border border-gray-100">
+                    <Text className="text-xl md:text-2xl text-gray-900 font-semibold leading-relaxed">
+                      {currentSentence || 'Đang tải...'}
+                    </Text>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -326,9 +424,11 @@ const RecordingPage: React.FC = () => {
               size="large"
               icon={<RightOutlined />}
               onClick={handleSaveRecording}
+              loading={uploading}
+              disabled={uploading}
               className="h-11 md:h-12 px-5 md:px-6 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-medium transition-all"
             >
-              Tiếp tục →
+              {uploading ? 'Đang tải lên...' : 'Tiếp tục →'}
             </Button>
             {isRecording && (
               <Button
@@ -354,7 +454,9 @@ const RecordingPage: React.FC = () => {
           <div className="w-full max-w-md mx-auto h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-600 transition-all duration-500 rounded-full"
-              style={{ width: `${(recordings.length / 2) * 100}%` }}
+              style={{ 
+                width: `${(recordings.length / 2) * 100}%` 
+              }}
             />
           </div>
         </div>

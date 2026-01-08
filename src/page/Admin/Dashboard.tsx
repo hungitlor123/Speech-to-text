@@ -38,7 +38,9 @@ const Dashboard: React.FC = () => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  const handlePlay = (audioUrl: string, id: string) => {
+  const handlePlay = (audioUrl: string | null, id: string) => {
+    if (!audioUrl) return;
+
     if (playingId === id) {
       setPlayingId(null);
     } else {
@@ -110,9 +112,8 @@ const Dashboard: React.FC = () => {
       key: 'IsApproved',
       width: 100,
       render: (isApproved: boolean) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          isApproved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-        }`}>
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isApproved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+          }`}>
           {isApproved ? 'Đã duyệt' : 'Chờ duyệt'}
         </span>
       ),
@@ -121,7 +122,7 @@ const Dashboard: React.FC = () => {
       title: 'Hành động',
       key: 'action',
       width: 280,
-      render: (_: any, record: Recording) => (
+      render: (_: unknown, record: Recording) => (
         <Space size="small">
           <Button
             type={playingId === record.RecordingID ? 'primary' : 'default'}
@@ -164,117 +165,117 @@ const Dashboard: React.FC = () => {
       <Sidebar />
       <div className="flex-1 min-h-screen bg-white py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-3 py-4">
-          
-          <Text className="text-lg md:text-xl text-gray-600 font-medium">
-            Xin chào, <span className="text-blue-600 font-semibold">Admin</span>
-          </Text>
-        </div>
+          {/* Header */}
+          <div className="text-center space-y-3 py-4">
 
-        {/* Statistics Cards */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={8} lg={8}>
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-              <div className="bg-white rounded-[1rem] p-6">
-                <Statistic
-                  title={
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <AudioOutlined className="text-blue-600" />
-                      </div>
-                      <span className="text-gray-600 font-medium">Tổng ghi âm</span>
-                    </div>
-                  }
-                  value={recordings.length}
-                  valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
-                />
-              </div>
-            </div>
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={8}>
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-              <div className="bg-white rounded-[1rem] p-6">
-                <Statistic
-                  title={
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircleOutlined className="text-green-600" />
-                      </div>
-                      <span className="text-gray-600 font-medium">Đã duyệt</span>
-                    </div>
-                  }
-                  value={recordings.filter((r) => r.IsApproved).length}
-                  valueStyle={{ color: '#16a34a', fontSize: '32px', fontWeight: 'bold' }}
-                />
-              </div>
-            </div>
-          </Col>
-
-          <Col xs={24} sm={12} md={8} lg={8}>
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-              <div className="bg-white rounded-[1rem] p-6">
-                <Statistic
-                  title={
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                        <ClockCircleOutlined className="text-purple-600" />
-                      </div>
-                      <span className="text-gray-600 font-medium">Chờ duyệt</span>
-                    </div>
-                  }
-                  value={recordings.filter((r) => !r.IsApproved).length}
-                  valueStyle={{ color: '#9333ea', fontSize: '32px', fontWeight: 'bold' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-
-        {/* Recordings Table */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="space-y-4">
-            <div>
-              <Title level={3} className="!text-blue-600 !mb-2">
-                Danh sách ghi âm
-              </Title>
-              <Text className="text-gray-600">
-                Quản lý tất cả các bản ghi âm từ người dùng
-              </Text>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Spin size="large" />
-              </div>
-            ) : recordings.length > 0 ? (
-              <Table
-                columns={columns}
-                dataSource={recordings}
-                rowKey="RecordingID"
-                pagination={{ pageSize: 10, responsive: true }}
-                scroll={{ x: 800 }}
-              />
-            ) : (
-              <Empty description="Chưa có bản ghi âm nào" style={{ marginTop: 50 }} />
-            )}
+            <Text className="text-lg md:text-xl text-gray-600 font-medium">
+              Xin chào, <span className="text-blue-600 font-semibold">Admin</span>
+            </Text>
           </div>
-        </div>
 
-        {/* Welcome Card */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-          <div className="bg-white rounded-[1rem] p-6 md:p-8">
-            <div className="text-center space-y-4">
-              <Title level={3} className="!text-blue-600 !mb-2">
-                Chào mừng đến với trang quản trị
-              </Title>
-              <Text className="text-gray-600 text-base">
-                Bạn có thể quản lý người dùng, bản ghi âm và các dữ liệu khác tại đây.
-              </Text>
+          {/* Statistics Cards */}
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12} md={8} lg={8}>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
+                <div className="bg-white rounded-[1rem] p-6">
+                  <Statistic
+                    title={
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <AudioOutlined className="text-blue-600" />
+                        </div>
+                        <span className="text-gray-600 font-medium">Tổng ghi âm</span>
+                      </div>
+                    }
+                    value={recordings.length}
+                    valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
+                  />
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={8}>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
+                <div className="bg-white rounded-[1rem] p-6">
+                  <Statistic
+                    title={
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <CheckCircleOutlined className="text-green-600" />
+                        </div>
+                        <span className="text-gray-600 font-medium">Đã duyệt</span>
+                      </div>
+                    }
+                    value={recordings.filter((r) => r.IsApproved).length}
+                    valueStyle={{ color: '#16a34a', fontSize: '32px', fontWeight: 'bold' }}
+                  />
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={8}>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
+                <div className="bg-white rounded-[1rem] p-6">
+                  <Statistic
+                    title={
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                          <ClockCircleOutlined className="text-purple-600" />
+                        </div>
+                        <span className="text-gray-600 font-medium">Chờ duyệt</span>
+                      </div>
+                    }
+                    value={recordings.filter((r) => !r.IsApproved).length}
+                    valueStyle={{ color: '#9333ea', fontSize: '32px', fontWeight: 'bold' }}
+                  />
+                </div>
+              </div>
+            </Col>
+          </Row>
+
+          {/* Recordings Table */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="space-y-4">
+              <div>
+                <Title level={3} className="!text-blue-600 !mb-2">
+                  Danh sách ghi âm
+                </Title>
+                <Text className="text-gray-600">
+                  Quản lý tất cả các bản ghi âm từ người dùng
+                </Text>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <Spin size="large" />
+                </div>
+              ) : recordings.length > 0 ? (
+                <Table
+                  columns={columns}
+                  dataSource={recordings}
+                  rowKey="RecordingID"
+                  pagination={{ pageSize: 10, responsive: true }}
+                  scroll={{ x: 800 }}
+                />
+              ) : (
+                <Empty description="Chưa có bản ghi âm nào" style={{ marginTop: 50 }} />
+              )}
             </div>
           </div>
-        </div>
+
+          {/* Welcome Card */}
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
+            <div className="bg-white rounded-[1rem] p-6 md:p-8">
+              <div className="text-center space-y-4">
+                <Title level={3} className="!text-blue-600 !mb-2">
+                  Chào mừng đến với trang quản trị
+                </Title>
+                <Text className="text-gray-600 text-base">
+                  Bạn có thể quản lý người dùng, bản ghi âm và các dữ liệu khác tại đây.
+                </Text>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
