@@ -2,14 +2,22 @@ import React from 'react';
 import { Button } from 'antd';
 import { AudioOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector } from '@/services/store/store';
+import { useAppDispatch, useAppSelector } from '@/services/store/store';
+import { resetUserState } from '@/services/features/userSlice';
 
 const ThankYouPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { userInfo, recordings } = useAppSelector((state) => state.user);
 
   const handleRecordMore = () => {
     navigate('/recording');
+  };
+
+  const handleBackHome = () => {
+    // Reset toàn bộ trạng thái user để có thể nhập lại từ đầu
+    dispatch(resetUserState());
+    navigate('/');
   };
 
   if (!userInfo) {
@@ -66,15 +74,24 @@ const ThankYouPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Button */}
-          <Button
-            type="primary"
-            size="large"
-            onClick={handleRecordMore}
-            className="h-14 px-8 rounded-xl bg-white text-blue-600 border-none text-lg font-semibold shadow-2xl hover:bg-blue-50 hover:scale-105 transition-all duration-300"
-          >
-            Ghi âm thêm
-          </Button>
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleRecordMore}
+              className="h-14 px-8 rounded-xl bg-white text-blue-600 border-none text-lg font-semibold shadow-2xl hover:bg-blue-50 hover:scale-105 transition-all duration-300"
+            >
+              Ghi âm thêm
+            </Button>
+            <Button
+              size="large"
+              onClick={handleBackHome}
+              className="h-14 px-8 rounded-xl border-2 border-white/80 text-white text-lg font-semibold bg-transparent hover:bg-white/10 hover:border-white shadow-2xl transition-all duration-300"
+            >
+              Về trang bắt đầu
+            </Button>
+          </div>
         </div>
       </div>
     </div>

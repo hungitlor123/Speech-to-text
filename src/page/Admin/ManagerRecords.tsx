@@ -54,7 +54,9 @@ const ManagerRecords: React.FC = () => {
     }
   };
 
-  const handlePlay = (audioUrl: string, id: string) => {
+  const handlePlay = (audioUrl: string | null, id: string) => {
+    if (!audioUrl) return;
+
     if (playingId === id) {
       setPlayingId(null);
     } else {
@@ -136,7 +138,7 @@ const ManagerRecords: React.FC = () => {
   };
 
   const recordingColumns = [
-    
+
     {
       title: 'Người dùng',
       dataIndex: 'PersonID',
@@ -173,9 +175,8 @@ const ManagerRecords: React.FC = () => {
       key: 'IsApproved',
       width: 100,
       render: (isApproved: boolean) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          isApproved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-        }`}>
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isApproved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+          }`}>
           {isApproved ? 'Đã duyệt' : 'Chờ duyệt'}
         </span>
       ),
@@ -184,7 +185,7 @@ const ManagerRecords: React.FC = () => {
       title: 'Hành động',
       key: 'action',
       width: 280,
-      render: (_: any, record: Recording) => (
+      render: (_: unknown, record: Recording) => (
         <Space size="small">
           <Button
             type={playingId === record.RecordingID ? 'primary' : 'default'}
@@ -223,7 +224,7 @@ const ManagerRecords: React.FC = () => {
   ];
 
   const sentenceColumns = [
-    
+
     {
       title: 'Nội dung',
       dataIndex: 'Content',
@@ -244,7 +245,7 @@ const ManagerRecords: React.FC = () => {
       title: 'Hành động',
       key: 'action',
       width: 180,
-      render: (_: any, record: Sentence) => (
+      render: (_: unknown, record: Sentence) => (
         <Space size="small">
           <Button
             icon={<EditOutlined />}
@@ -286,14 +287,14 @@ const ManagerRecords: React.FC = () => {
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-3 py-4">
-            <Title 
-              level={1} 
+            <Title
+              level={1}
               className="!mb-0 !text-4xl md:!text-5xl !font-bold !text-blue-600"
               style={{ letterSpacing: '-0.02em' }}
             >
               Quản Lý Bản Thu & Câu
             </Title>
-            
+
           </div>
 
           {/* Statistics Cards */}

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Modal, Input, Button, Typography } from 'antd';
+import { Modal, Input, Button, Typography, message } from 'antd';
 import { UserOutlined, ManOutlined, WomanOutlined } from '@ant-design/icons';
-import { useAppDispatch } from '@/services/store/store';
-import { setUserInfo } from '@/services/features/userSlice';
+import { useAppDispatch, useAppSelector } from '@/services/store/store';
+import { setUserInfo, createUser } from '@/services/features/userSlice';
 import { cn } from '@/lib/utils';
 
 const { Title, Text } = Typography;
@@ -17,14 +17,25 @@ const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess 
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | null>(null);
   const dispatch = useAppDispatch();
+  const { creatingUser } = useAppSelector((state) => state.user);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (name.trim() && gender) {
-      dispatch(setUserInfo({ name: name.trim(), gender }));
-      setName('');
-      setGender(null);
-      onSuccess();
-      onClose();
+      try {
+        // Call API to create user and get guestId
+        const result = await dispatch(createUser({ name: name.trim(), gender })).unwrap();
+
+        // Set user info with guestId from API response
+        dispatch(setUserInfo({ name: name.trim(), gender, guestId: result.guestId }));
+
+        setName('');
+        setGender(null);
+        onSuccess();
+        onClose();
+      } catch (error) {
+        message.error('Không thể tạo người dùng. Vui lòng thử lại.');
+        console.error('Error creating user:', error);
+      }
     }
   };
 
@@ -57,8 +68,8 @@ const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess 
       <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <Title 
-            level={2} 
+          <Title
+            level={2}
             className="!mb-0 !text-3xl !font-bold !text-blue-600"
             style={{ letterSpacing: '-0.02em' }}
           >
@@ -165,7 +176,8 @@ const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess 
           size="large"
           block
           onClick={handleContinue}
-          disabled={!name.trim() || !gender}
+          disabled={!name.trim() || !gender || creatingUser}
+          loading={creatingUser}
           className={cn(
             "h-12 rounded-xl text-base font-semibold transition-all duration-300",
             "bg-blue-600 border-none hover:bg-blue-700",
@@ -173,7 +185,7 @@ const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess 
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           )}
         >
-          Tiếp tục
+          {creatingUser ? 'Đang xử lý...' : 'Tiếp tục'}
         </Button>
       </div>
     </Modal>
