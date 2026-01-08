@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import axiosInstance from "@/services/constant/axiosInstance";
 
 export interface UserInfo {
   name: string;
@@ -12,6 +13,14 @@ export interface Recording {
   duration: number;
 }
 
+export interface User {
+  PersonID: string;
+  Name: string;
+  Gender: string;
+  Role: string;
+  CreatedAt: string;
+}
+
 interface UserState {
   userInfo: UserInfo | null;
   recordings: Recording[];
@@ -19,6 +28,9 @@ interface UserState {
   currentSentence: string;
   isRecording: boolean;
   recordingTime: number;
+  users: User[];
+  usersLoading: boolean;
+  usersError: string | null;
 }
 
 const initialState: UserState = {
@@ -28,7 +40,19 @@ const initialState: UserState = {
   currentSentence: '',
   isRecording: false,
   recordingTime: 0,
+  users: [],
+  usersLoading: false,
+  usersError: null,
 };
+
+// Async thunk to fetch users
+export const fetchUsers = createAsyncThunk(
+  'user/fetchUsers',
+  async () => {
+    const response = await axiosInstance.get('users');
+    return response.data;
+  }
+);
 
 const userSlice = createSlice({
   name: 'user',
@@ -64,6 +88,21 @@ const userSlice = createSlice({
       state.isRecording = false;
       state.recordingTime = 0;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUsers.pending, (state) => {
+        state.usersLoading = true;
+        state.usersError = null;
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.users = action.payload;
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.usersError = action.error.message || 'Failed to fetch users';
+      });
   },
 });
 
