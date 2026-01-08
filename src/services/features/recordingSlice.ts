@@ -1,0 +1,95 @@
+import axiosInstance from "@/services/constant/axiosInstance";
+
+export interface Sentence {
+  SentenceID: string;
+  Content: string;
+  CreatedAt: string;
+}
+
+export interface Recording {
+  RecordingID: string;
+  PersonID: string;
+  SentenceID: string;
+  AudioUrl: string;
+  IsApproved: boolean;
+  RecordedAt: string;
+}
+
+export const getSentences = async (): Promise<Sentence[]> => {
+  try {
+    const response = await axiosInstance.get<Sentence[]>("sentences");
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error: any) {
+    console.error('Error fetching sentences:', error);
+    return [];
+  }
+};
+
+export const getRecordings = async (): Promise<Recording[]> => {
+  try {
+    const response = await axiosInstance.get<Recording[]>("recordings");
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error: any) {
+    console.error('Error fetching recordings:', error);
+    return [];
+  }
+};
+
+export const uploadRecording = async (formData: FormData): Promise<Recording> => {
+  try {
+    const response = await axiosInstance.post<Recording>("recordings", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Upload failed" };
+  }
+};
+
+// CRUD operations for Sentences
+export const createSentence = async (content: string): Promise<Sentence> => {
+  try {
+    const response = await axiosInstance.post<Sentence>("sentences", { content });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Create sentence failed" };
+  }
+};
+
+export const updateSentence = async (sentenceId: string, content: string): Promise<Sentence> => {
+  try {
+    const response = await axiosInstance.put<Sentence>(`sentences/${sentenceId}`, { content });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Update sentence failed" };
+  }
+};
+
+export const deleteSentence = async (sentenceId: string): Promise<void> => {
+  try {
+    await axiosInstance.delete(`sentences/${sentenceId}`);
+  } catch (error: any) {
+    throw error.response?.data || { message: "Delete sentence failed" };
+  }
+};
+
+// Approve/Reject Recording
+export const approveRecording = async (recordingId: string): Promise<Recording> => {
+  try {
+    const response = await axiosInstance.patch<Recording>(`recordings/${recordingId}/approve`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Approve recording failed" };
+  }
+};
+
+export const rejectRecording = async (recordingId: string): Promise<Recording> => {
+  try {
+    const response = await axiosInstance.patch<Recording>(`recordings/${recordingId}/reject`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Reject recording failed" };
+  }
+};

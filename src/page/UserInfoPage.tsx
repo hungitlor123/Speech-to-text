@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/services/store/store';
 import UserInfoModal from '@/components/UserInfoModal';
-import { AudioOutlined } from '@ant-design/icons';
+import { AudioOutlined, LoginOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
 import { clearPersistedUserData } from '@/lib/storageUtils';
 
 const UserInfoPage: React.FC = () => {
@@ -27,8 +28,24 @@ const UserInfoPage: React.FC = () => {
     navigate('/recording');
   };
 
+  const handleLoginClick = () => {
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Login Button - Top Right */}
+      <div className="absolute top-6 right-6 z-20">
+        <Button
+          type="primary"
+          icon={<LoginOutlined />}
+          onClick={handleLoginClick}
+          className="bg-white text-blue-600 border-none hover:bg-blue-50 font-semibold shadow-lg hover:shadow-xl transition-all"
+        >
+          Đăng nhập
+        </Button>
+      </div>
+
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
