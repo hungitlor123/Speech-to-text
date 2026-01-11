@@ -10,9 +10,7 @@ const ThankYouPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { userInfo, recordings } = useAppSelector((state) => state.user);
 
-  const handleRecordMore = () => {
-    navigate('/recording');
-  };
+
 
   const handleBackHome = () => {
     // Reset toàn bộ trạng thái user để có thể nhập lại từ đầu
@@ -54,15 +52,12 @@ const ThankYouPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Title */}
-          <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow-lg">
-            Cảm ơn bạn
-          </h1>
+
 
           {/* Message */}
-          <p className="text-xl md:text-2xl text-white/90 font-light">
-            Cảm ơn <span className="font-semibold">{userInfo.name}</span> đã hoàn thành
-          </p>
+          <h1 className="text-3xl md:text-4xl text-white/90 font-light">
+            Cảm ơn <span className="font-semibold text-blue-600">{userInfo.name}</span> đã hoàn thành
+          </h1>
 
           {/* Recording Count */}
           <div className="space-y-2">
@@ -76,14 +71,7 @@ const ThankYouPage: React.FC = () => {
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleRecordMore}
-              className="h-14 px-8 rounded-xl bg-white text-blue-600 border-none text-lg font-semibold shadow-2xl hover:bg-blue-50 hover:scale-105 transition-all duration-300"
-            >
-              Ghi âm thêm
-            </Button>
+
             <Button
               size="large"
               onClick={handleBackHome}

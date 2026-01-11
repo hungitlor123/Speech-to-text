@@ -4,6 +4,7 @@ export interface Sentence {
   SentenceID: string;
   Content: string;
   CreatedAt: string;
+  Status: number;
 }
 
 export interface Recording {
@@ -114,5 +115,36 @@ export const rejectRecording = async (recordingId: string): Promise<Recording> =
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Reject recording failed" };
+  }
+};
+
+// Create user sentence
+export interface CreateUserSentenceRequest {
+  name: string;
+  content: string;
+}
+
+export interface CreateUserSentenceResponse {
+  message: string;
+  data: Array<{
+    content: string;
+    status: number;
+    _id: string;
+    __v: number;
+    createdAt: string;
+  }>;
+}
+
+export const createUserSentence = async (
+  request: CreateUserSentenceRequest
+): Promise<CreateUserSentenceResponse> => {
+  try {
+    const response = await axiosInstance.post<CreateUserSentenceResponse>(
+      "sentences/user",
+      request
+    );
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Create user sentence failed" };
   }
 };

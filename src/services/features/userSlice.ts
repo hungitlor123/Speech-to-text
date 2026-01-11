@@ -2,9 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axiosInstance from "@/services/constant/axiosInstance";
 import {
   getSentences,
-  getRecordings,
   Sentence,
-  Recording as ApiRecording,
 } from "./recordingSlice";
 
 export interface UserInfo {
@@ -33,6 +31,7 @@ export interface AvailableSentence {
   SentenceID: string;
   Content: string;
   CreatedAt: string;
+  Status: number;
 }
 
 interface UserState {
@@ -99,44 +98,27 @@ export const createUser = createAsyncThunk(
   }
 );
 
-// Async thunk to fetch available sentences (sentences without completed recordings)
+// Async thunk to fetch available sentences (sentences with status === 1)
+// Note: personId parameter is kept for backward compatibility but no longer used
 export const fetchAvailableSentences = createAsyncThunk(
   "user/fetchAvailableSentences",
-  async (personId: string): Promise<AvailableSentence[]> => {
-    // Fetch both sentences and recordings in parallel
-    const [sentences, recordings] = await Promise.all([
-      getSentences(),
-      getRecordings(),
-    ]);
+  async (_personId: string): Promise<AvailableSentence[]> => {
+    // Fetch sentences
+    const sentences = await getSentences();
 
-    // Filter recordings for this person
-    const userRecordings = recordings.filter(
-      (rec: ApiRecording) => rec.PersonID === personId
-    );
-
-    // Get sentence IDs that have completed recordings (AudioUrl and IsApproved are NOT null)
-    const completedSentenceIds = new Set(
-      userRecordings
-        .filter(
-          (rec: ApiRecording) =>
-            rec.AudioUrl !== null && rec.IsApproved !== null
-        )
-        .map((rec: ApiRecording) => rec.SentenceID)
-    );
-
-    // Filter sentences that don't have completed recordings
-    // (either no recording exists, or recording exists but AudioUrl/IsApproved are null)
+    // Filter sentences with status === 1 (Được duyệt - có thể đi voice)
     const availableSentences = sentences.filter(
-      (sentence: Sentence) => !completedSentenceIds.has(sentence.SentenceID)
+      (sentence: Sentence) => sentence.Status === 1
     );
 
-    // Only return first 2 sentences for user to record
-    const limitedSentences = availableSentences.slice(0, 2);
+    // Randomly shuffle and return all available sentences
+    const shuffled = [...availableSentences].sort(() => Math.random() - 0.5);
 
-    return limitedSentences.map((s: Sentence) => ({
+    return shuffled.map((s: Sentence) => ({
       SentenceID: s.SentenceID,
       Content: s.Content,
       CreatedAt: s.CreatedAt,
+      Status: s.Status,
     }));
   }
 );
