@@ -26,12 +26,18 @@ const LoginPage: React.FC = () => {
       if (response.token) {
         message.success(response.message || 'Đăng nhập thành công!');
         
-        // Store token if provided
+        // Store token and user info
         localStorage.setItem('adminToken', response.token);
         localStorage.setItem('adminUsername', username);
+        localStorage.setItem('userRole', response.role || 'Admin');
         
+        // Navigate based on role
         setTimeout(() => {
-          navigate('/admin/dashboard');
+          if (response.role === 'Manager') {
+            navigate('/manager/dashboard');
+          } else {
+            navigate('/admin/dashboard');
+          }
         }, 500);
       } else {
         message.error(response.message || 'Đăng nhập thất bại');

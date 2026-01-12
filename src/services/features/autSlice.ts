@@ -8,12 +8,13 @@ export interface LoginRequest {
 export interface LoginResponse {
   message: string;
   token: string;
+  role?: string;
 }
 
 export const loginAdmin = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
     const response = await axiosInstance.post<LoginResponse>(
-      "admin/login",
+      "login",
       credentials
     );
     return response.data;

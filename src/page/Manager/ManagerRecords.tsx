@@ -13,6 +13,7 @@ const { TextArea } = Input;
 const ManagerRecords: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { users } = useSelector((state: RootState) => state.user);
+  const userRole = localStorage.getItem('userRole');
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [loadingRecordings, setLoadingRecordings] = useState(true);
@@ -511,14 +512,16 @@ const ManagerRecords: React.FC = () => {
                         <Text className="text-gray-600">
                           Quản lý tất cả các bản ghi âm từ người dùng
                         </Text>
-                        <Button
-                          icon={<DownloadOutlined />}
-                          onClick={handleDownloadAll}
-                          loading={downloading}
-                          className="bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-600"
-                        >
-                          Tải toàn bộ Audio
-                        </Button>
+                        {userRole === 'Admin' && (
+                          <Button
+                            icon={<DownloadOutlined />}
+                            onClick={handleDownloadAll}
+                            loading={downloading}
+                            className="bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-600"
+                          >
+                            Tải toàn bộ Audio
+                          </Button>
+                        )}
                       </div>
                     
                       {loadingRecordings ? (
@@ -574,22 +577,26 @@ const ManagerRecords: React.FC = () => {
                         </div>
                         
                         <Space>
-                          <Button
-                            icon={<DownloadOutlined />}
-                            onClick={handleDownloadWithAudio}
-                            loading={downloading}
-                            className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
-                          >
-                            Tải câu đã thu
-                          </Button>
-                          <Button
-                            icon={<DownloadOutlined />}
-                            onClick={handleDownloadApproved}
-                            loading={downloading}
-                            className="bg-green-50 hover:bg-green-100 border-green-300 text-green-600"
-                          >
-                            Tải câu đã duyệt
-                          </Button>
+                          {userRole === 'Admin' && (
+                            <>
+                              <Button
+                                icon={<DownloadOutlined />}
+                                onClick={handleDownloadWithAudio}
+                                loading={downloading}
+                                className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
+                              >
+                                Tải câu đã thu
+                              </Button>
+                              <Button
+                                icon={<DownloadOutlined />}
+                                onClick={handleDownloadApproved}
+                                loading={downloading}
+                                className="bg-green-50 hover:bg-green-100 border-green-300 text-green-600"
+                              >
+                                Tải câu đã duyệt
+                              </Button>
+                            </>
+                          )}
                           <Button
                             type="primary"
                             icon={<PlusOutlined />}

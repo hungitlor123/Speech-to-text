@@ -99,6 +99,25 @@ export const deleteSentence = async (sentenceId: string): Promise<void> => {
   }
 };
 
+// Approve/Reject Sentence
+export const approveSentence = async (sentenceId: string): Promise<Sentence> => {
+  try {
+    const response = await axiosInstance.patch<Sentence>(`sentences/${sentenceId}/approve`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Approve sentence failed" };
+  }
+};
+
+export const rejectSentence = async (sentenceId: string): Promise<Sentence> => {
+  try {
+    const response = await axiosInstance.patch<Sentence>(`sentences/${sentenceId}/reject`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Reject sentence failed" };
+  }
+};
+
 // Approve/Reject Recording
 export const approveRecording = async (recordingId: string): Promise<Recording> => {
   try {
@@ -146,5 +165,72 @@ export const createUserSentence = async (
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Create user sentence failed" };
+  }
+};
+// Download sentences with audio
+export interface DownloadSentencesParams {
+  mode?: 'with-audio' | 'without-audio' | 'all' | 'approved';
+  status?: number;
+  limit?: number;
+}
+
+export const downloadSentences = async (
+  params?: DownloadSentencesParams
+): Promise<Blob> => {
+  try {
+    const response = await axiosInstance.get<Blob>("sentences/download", {
+      params: {
+        mode: params?.mode || 'with-audio',
+        status: params?.status,
+        limit: params?.limit,
+      },
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Download sentences failed" };
+  }
+};
+
+// Get top recorders
+export interface TopRecorder {
+  userId: string;
+  name: string;
+  gender: string;
+  totalRecordings: number;
+  approvedRecordings?: number;
+  pendingRecordings?: number;
+  rejectedRecordings?: number;
+  createdAt: string;
+}
+
+export interface TopRecordersResponse {
+  filter: {
+    status: number | null;
+    limit: number;
+  };
+  count: number;
+  data: TopRecorder[];
+}
+
+export interface TopRecordersParams {
+  status?: number;
+  limit?: number;
+}
+
+export const getTopRecorders = async (
+  params?: TopRecordersParams
+): Promise<TopRecorder[]> => {
+  try {
+    const response = await axiosInstance.get<TopRecordersResponse>("users/top-recorders", {
+      params: {
+        status: params?.status,
+        limit: params?.limit || 6,
+      },
+    });
+    return response.data.data || [];
+  } catch (error: any) {
+    console.error('Error fetching top recorders:', error);
+    return [];
   }
 };
