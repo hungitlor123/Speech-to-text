@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Statistic, Tag, Button, Popconfirm, message, Space } from 'antd';
-import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col, Statistic, Tag, Button, Popconfirm, message, Space, Input, DatePicker, Select } from 'antd';
+import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, SearchOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '@/services/features/userSlice';
 import { getTopRecorders, TopRecorder } from '@/services/features/recordingSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
+import type { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -14,6 +15,9 @@ const ManagerUsers: React.FC = () => {
   const { users, usersLoading, deletingUser } = useSelector((state: RootState) => state.user);
   const [topRecorders, setTopRecorders] = useState<TopRecorder[]>([]);
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
+  const [searchName, setSearchName] = useState('');
+  const [filterGender, setFilterGender] = useState<string | null>(null);
+  const [filterDate, setFilterDate] = useState<Dayjs | null>(null);
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -42,7 +46,6 @@ const ManagerUsers: React.FC = () => {
   };
 
   const columns = [
-    
     {
       title: 'Tên',
       dataIndex: 'Name',
@@ -58,17 +61,6 @@ const ManagerUsers: React.FC = () => {
       render: (gender: string) => (
         <Tag color={gender === 'Male' ? 'blue' : 'pink'} className="font-medium">
           {gender === 'Male' ? 'Nam' : 'Nữ'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Vai trò',
-      dataIndex: 'Role',
-      key: 'Role',
-      width: 120,
-      render: (role: string) => (
-        <Tag color={role === 'Admin' ? 'red' : 'green'} className="font-medium">
-          {role}
         </Tag>
       ),
     },
@@ -113,6 +105,23 @@ const ManagerUsers: React.FC = () => {
 
   const maleCount = users.filter((u) => u.Gender === 'Male').length;
   const femaleCount = users.filter((u) => u.Gender === 'Female').length;
+
+  // Filter data based on search and filter criteria
+  const filteredUsers = users.filter((user) => {
+    const matchName = user.Name.toLowerCase().includes(searchName.toLowerCase());
+    const matchGender = filterGender ? user.Gender === filterGender : true;
+    const matchDate = filterDate 
+      ? new Date(user.CreatedAt).toDateString() === filterDate.toDate().toDateString() 
+      : true;
+    
+    return matchName && matchGender && matchDate;
+  });
+
+  const handleClearFilters = () => {
+    setSearchName('');
+    setFilterGender(null);
+    setFilterDate(null);
+  };
 
   return (
     <div className="flex">
@@ -198,19 +207,52 @@ const ManagerUsers: React.FC = () => {
                 <Title level={3} className="!text-blue-600 !mb-2">
                   Danh sách người dùng
                 </Title>
-                <Text className="text-gray-600">
-                  Tổng hợp thông tin tất cả người dùng trong hệ thống
-                </Text>
+                
+              </div>
+
+              {/* Filters Section */}
+              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Input
+                    placeholder="Tìm kiếm theo tên..."
+                    prefix={<SearchOutlined />}
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    allowClear
+                  />
+                  <Select
+                    placeholder="Chọn giới tính"
+                    value={filterGender}
+                    onChange={setFilterGender}
+                    allowClear
+                    options={[
+                      { label: 'Nam', value: 'Male' },
+                      { label: 'Nữ', value: 'Female' }
+                    ]}
+                  />
+                  <DatePicker
+                    placeholder="Chọn ngày tạo"
+                    value={filterDate}
+                    onChange={setFilterDate}
+                  />
+                  <Button 
+                    onClick={handleClearFilters}
+                    type="default"
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </div>
+                
               </div>
 
               {usersLoading ? (
                 <div className="flex justify-center py-12">
                   <Spin size="large" />
                 </div>
-              ) : users.length > 0 ? (
+              ) : filteredUsers.length > 0 ? (
                 <Table
                   columns={columns}
-                  dataSource={users}
+                  dataSource={filteredUsers}
                   rowKey="PersonID"
                   pagination={{ pageSize: 10, responsive: true }}
                   scroll={{ x: 800 }}

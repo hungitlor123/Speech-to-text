@@ -552,9 +552,7 @@ const ManagerRecords: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <div className="space-y-2">
-                          <Text className="text-gray-600 block">
-                            Quản lý nội dung các câu để ghi âm
-                          </Text>
+                            
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
                             <Select
