@@ -48,6 +48,8 @@ interface UserState {
   usersError: string | null;
   creatingUser: boolean;
   createUserError: string | null;
+  deletingUser: boolean;
+  deleteUserError: string | null;
   loadingSentences: boolean;
   sentencesError: string | null;
 }
@@ -66,6 +68,8 @@ const initialState: UserState = {
   usersError: null,
   creatingUser: false,
   createUserError: null,
+  deletingUser: false,
+  deleteUserError: null,
   loadingSentences: false,
   sentencesError: null,
 };
@@ -95,6 +99,13 @@ export const createUser = createAsyncThunk(
       gender: userData.gender === "male" ? "Male" : "Female", // Convert to capitalized format
     });
     return response.data;
+  }
+);
+export const deleteUser = createAsyncThunk(
+  "user/deleteUser",
+  async (personId: string): Promise<{ personId: string }> => {
+    await axiosInstance.delete(`users/${personId}`);
+    return { personId };
   }
 );
 
@@ -214,6 +225,21 @@ const userSlice = createSlice({
         state.loadingSentences = false;
         state.sentencesError =
           action.error.message || "Failed to fetch available sentences";
+      })
+      .addCase(deleteUser.pending, (state) => {
+        state.deletingUser = true;
+        state.deleteUserError = null;
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.deletingUser = false;
+        // Remove deleted user from the list
+        state.users = state.users.filter(
+          (user) => user.PersonID !== action.payload.personId
+        );
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.deletingUser = false;
+        state.deleteUserError = action.error.message || "Failed to delete user";
       });
   },
 });
