@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '@/services/features/userSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { TextArea } = Input;
 
 const ManagerRecords: React.FC = () => {
@@ -141,7 +141,7 @@ const ManagerRecords: React.FC = () => {
     setDownloading(true);
     try {
       const blob = await downloadSentences({ mode: 'all' });
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -151,7 +151,7 @@ const ManagerRecords: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       message.success('Tải toàn bộ audio thành công');
     } catch (error) {
       console.error('Failed to download all audio:', error);
@@ -165,7 +165,7 @@ const ManagerRecords: React.FC = () => {
     setDownloading(true);
     try {
       const blob = await downloadSentences({ mode: 'with-audio' });
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -174,7 +174,7 @@ const ManagerRecords: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       message.success('Tải câu đã thu thành công');
     } catch (error) {
       console.error('Failed to download sentences with audio:', error);
@@ -188,7 +188,7 @@ const ManagerRecords: React.FC = () => {
     setDownloading(true);
     try {
       const blob = await downloadSentences({ mode: 'approved' });
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -197,7 +197,7 @@ const ManagerRecords: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       message.success('Tải câu đã duyệt thành công');
     } catch (error) {
       console.error('Failed to download approved sentences:', error);
@@ -504,12 +504,12 @@ const ManagerRecords: React.FC = () => {
                       <AudioOutlined />
                       Danh sách ghi âm
                     </span>
-                    
+
                   ),
                   children: (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        
+
                         {userRole === 'Admin' && (
                           <Button
                             icon={<DownloadOutlined />}
@@ -521,7 +521,7 @@ const ManagerRecords: React.FC = () => {
                           </Button>
                         )}
                       </div>
-                    
+
                       {loadingRecordings ? (
                         <div className="flex justify-center py-12">
                           <Spin size="large" />
@@ -538,7 +538,7 @@ const ManagerRecords: React.FC = () => {
                         <Empty description="Chưa có bản ghi âm nào" style={{ marginTop: 50 }} />
                       )}
                     </div>
-                    
+
                   ),
                 },
                 {
@@ -553,7 +553,7 @@ const ManagerRecords: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <div className="space-y-2">
-                          
+
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
                             <Select
@@ -571,7 +571,7 @@ const ManagerRecords: React.FC = () => {
                             />
                           </div>
                         </div>
-                        
+
                         <Space>
                           {userRole === 'Admin' && (
                             <>
