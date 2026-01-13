@@ -181,8 +181,8 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
     }
 
     return (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 shadow-sm" style={{ height: '228px', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex items-center gap-4 mb-4" style={{ height: '56px', flexShrink: 0 }}>
                 <button
                     onClick={async (e) => {
                         e.preventDefault();
@@ -233,7 +233,8 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
             </div>
             <div
                 ref={waveformRef}
-                className="w-full rounded-lg bg-white/50 p-3"
+                className="w-full rounded-lg bg-white/50 p-3 flex-1"
+                style={{ minHeight: 0 }}
             />
         </div>
     );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Tag, Input, message, Spin } from 'antd';
-import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, StopOutlined, LogoutOutlined } from '@ant-design/icons';
+import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
 import {
@@ -120,6 +120,10 @@ const RecordingPage: React.FC = () => {
           message.success('Ghi âm đã được lưu thành công!');
 
           const duration = recordingTime;
+          // Calculate new recording index before adding
+          const newRecordingIndex = recordings.length;
+
+          // Add recording to state immediately
           dispatch(
             addRecording({
               sentence: currentSentence,
@@ -130,29 +134,22 @@ const RecordingPage: React.FC = () => {
             })
           );
 
-          // Check if user has completed 2 recordings
-          if (recordings.length + 1 >= 2) {
-            // User has completed 2 recordings, go to thank you page
-            setTimeout(() => {
-              navigate('/thank-you');
-            }, 500);
-          } else {
-            // Refresh available sentences to get updated list and move to next sentence
-            if (userInfo?.guestId) {
-              const updatedSentences = await dispatch(fetchAvailableSentences(userInfo.guestId)).unwrap();
+          // Wait for state to update by using a small delay
+          await new Promise(resolve => setTimeout(resolve, 100));
 
-              if (updatedSentences.length > 0) {
-                // Move to next available sentence
-                const nextSentence = updatedSentences[0];
-                dispatch(setCurrentSentence(nextSentence.Content));
-                dispatch(setCurrentSentenceId(nextSentence.SentenceID));
-                dispatch(setCurrentRecordingIndex(recordings.length + 1));
-              } else {
-                // No more sentences available
-                setTimeout(() => {
-                  navigate('/thank-you');
-                }, 500);
-              }
+          // Refresh available sentences to get updated list and move to next sentence
+          if (userInfo?.guestId) {
+            const updatedSentences = await dispatch(fetchAvailableSentences(userInfo.guestId)).unwrap();
+
+            if (updatedSentences.length > 0) {
+              // Move to next available sentence
+              const nextSentence = updatedSentences[0];
+              dispatch(setCurrentSentence(nextSentence.Content));
+              dispatch(setCurrentSentenceId(nextSentence.SentenceID));
+              dispatch(setCurrentRecordingIndex(newRecordingIndex + 1));
+            } else {
+              // No more sentences available
+              message.info('Đã hết câu gợi ý. Bạn có thể tiếp tục ghi âm hoặc nhấn Submit để hoàn thành.');
             }
           }
         }
@@ -168,14 +165,11 @@ const RecordingPage: React.FC = () => {
           })
         );
 
-        if (recordings.length + 1 >= 2) {
-          setTimeout(() => {
-            navigate('/thank-you');
-          }, 500);
-        } else {
-          // Keep the same custom sentence
-          dispatch(setCurrentSentence(customSentence.trim()));
-        }
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Keep the same custom sentence for next recording
+        dispatch(setCurrentSentence(customSentence.trim()));
       }
 
       setIsPlaying(false);
@@ -196,12 +190,6 @@ const RecordingPage: React.FC = () => {
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleExit = () => {
@@ -245,20 +233,30 @@ const RecordingPage: React.FC = () => {
     }
   };
 
+  const handleSubmit = async () => {
+    if (recordings.length === 0) {
+      message.warning('Vui lòng ghi âm ít nhất một câu trước khi hoàn thành');
+      return;
+    }
+    // Wait a bit to ensure all state updates are complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+    navigate('/thank-you');
+  };
+
   if (!userInfo) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-white py-8 px-4 md:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-white py-3 px-4 md:px-8">
+      <div className="max-w-4xl mx-auto space-y-3">
         {/* Header */}
-        <div className="space-y-3 py-4">
+        <div className="space-y-2 py-2">
           {/* Exit Button */}
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end mb-1">
             <button
               onClick={handleExit}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-gray-200 hover:border-red-300 text-sm font-medium"
+              className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-gray-200 hover:border-red-300 text-sm font-medium"
               title="Thoát và nhập tên lại"
             >
               <LogoutOutlined />
@@ -266,46 +264,46 @@ const RecordingPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-1">
             <Title
               level={1}
-              className="!mb-0 !text-4xl md:!text-5xl !font-bold !text-blue-600"
+              className="!mb-0 !text-3xl md:!text-4xl !font-bold !text-blue-600"
               style={{ letterSpacing: '-0.02em' }}
             >
               Ghi Âm
             </Title>
-            <Text className="text-lg md:text-xl text-gray-600 font-medium">
+            <Text className="text-base md:text-lg text-gray-600 font-medium">
               Xin chào, <span className="text-blue-600 font-semibold">{userInfo.name}</span>
             </Text>
           </div>
         </div>
 
         {/* Mode Selection */}
-        <div className="flex justify-center gap-3 md:gap-4">
+        <div className="flex justify-center gap-2 md:gap-3">
           <button
             onClick={() => setMode('existing')}
             className={cn(
-              "px-5 md:px-6 py-2.5 md:py-3 rounded-xl font-medium transition-all duration-300",
-              "flex items-center gap-2 text-base md:text-lg",
+              "px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-medium transition-all duration-300",
+              "flex items-center gap-2 text-sm md:text-base",
               mode === 'existing'
                 ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-[1.02]"
                 : "bg-white text-gray-600 border-2 border-gray-200 hover:border-blue-300 hover:shadow-md"
             )}
           >
-            <BookOutlined className="text-lg" />
+            <BookOutlined className="text-base" />
             <span>Đọc câu có sẵn</span>
           </button>
           <button
             onClick={() => setMode('new')}
             className={cn(
-              "px-5 md:px-6 py-2.5 md:py-3 rounded-xl font-medium transition-all duration-300",
-              "flex items-center gap-2 text-base md:text-lg",
+              "px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-medium transition-all duration-300",
+              "flex items-center gap-2 text-sm md:text-base",
               mode === 'new'
                 ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-[1.02]"
                 : "bg-white text-gray-600 border-2 border-gray-200 hover:border-blue-300 hover:shadow-md"
             )}
           >
-            <PlusOutlined className="text-lg" />
+            <PlusOutlined className="text-base" />
             <span>Tạo câu mới</span>
           </button>
         </div>
@@ -313,42 +311,42 @@ const RecordingPage: React.FC = () => {
         {/* Suggested / Custom Sentence Card */}
         {mode === 'existing' && (
           <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-            <div className="bg-white rounded-[1rem] p-6 md:p-8 flex flex-col gap-4">
+            <div className="bg-white rounded-[1rem] p-4 md:p-5 flex flex-col gap-2">
               {loadingSentences ? (
-                <div className="flex justify-center items-center py-8">
+                <div className="flex justify-center items-center py-4">
                   <Spin size="large" />
                 </div>
               ) : availableSentences.length === 0 ? (
-                <div className="text-center py-8">
-                  <Text className="text-gray-500 text-lg">
+                <div className="text-center py-4">
+                  <Text className="text-gray-500 text-base">
                     Không còn câu nào cần ghi âm. Cảm ơn bạn!
                   </Text>
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                        <BookOutlined className="text-blue-600" />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
+                        <BookOutlined className="text-blue-600 text-xs" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold tracking-[0.18em] text-blue-500 uppercase">
+                        <span className="text-[10px] font-semibold tracking-[0.15em] text-blue-500 uppercase">
                           Câu gợi ý
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-[10px] text-gray-500">
                           Đọc to và rõ ràng theo đúng câu bên dưới
                         </span>
                       </div>
                     </div>
                     <Tag
                       color="blue"
-                      className="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-full border-0 bg-blue-50 text-blue-600"
+                      className="px-2 py-0.5 text-xs font-semibold rounded-full border-0 bg-blue-50 text-blue-600"
                     >
-                      {currentRecordingIndex + 1}/2
+                      Câu {currentRecordingIndex + 1}
                     </Tag>
                   </div>
-                  <div className="bg-gray-50 rounded-xl px-5 py-4 border border-gray-100">
-                    <Text className="text-xl md:text-2xl text-gray-900 font-semibold leading-relaxed">
+                  <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                    <Text className="text-lg md:text-xl text-gray-900 font-semibold leading-relaxed">
                       {currentSentence || 'Đang tải...'}
                     </Text>
                   </div>
@@ -360,24 +358,24 @@ const RecordingPage: React.FC = () => {
 
         {mode === 'new' && (
           <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-            <div className="bg-white rounded-[1rem] p-6 md:p-8 flex flex-col gap-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                    <PlusOutlined className="text-blue-600" />
+            <div className="bg-white rounded-[1rem] p-4 md:p-5 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
+                    <PlusOutlined className="text-blue-600 text-xs" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-semibold tracking-[0.18em] text-blue-500 uppercase">
+                    <span className="text-[10px] font-semibold tracking-[0.15em] text-blue-500 uppercase">
                       Tạo câu mới
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-[10px] text-gray-500">
                       Nhập câu bạn muốn tạo và gửi
                     </span>
                   </div>
                 </div>
               </div>
               <Input.TextArea
-                rows={4}
+                rows={3}
                 placeholder="Nhập câu mà bạn muốn tạo..."
                 value={customSentence}
                 onChange={(e) => {
@@ -393,107 +391,143 @@ const RecordingPage: React.FC = () => {
                 onClick={handleSubmitCustomSentence}
                 loading={submittingSentence}
                 disabled={submittingSentence || !customSentence.trim()}
-                className="h-12 md:h-14 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all"
+                className="h-10 md:h-11 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all"
                 block
               >
                 {submittingSentence ? 'Đang gửi...' : 'Gửi câu'}
               </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Recording Waveform - Show during recording (only for existing mode) */}
-        {mode === 'existing' && isRecording && mediaStream && (
-          <RecordingWaveform mediaStream={mediaStream} isRecording={isRecording} />
-        )}
-
-        {/* Recording Time (only for existing mode) */}
-        {mode === 'existing' && isRecording && (
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2.5 px-5 py-2.5 bg-red-50 border border-red-200 rounded-full shadow-sm">
-              <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-              <Text className="text-base md:text-lg font-semibold text-red-600">
-                Thời gian ghi âm: {formatTime(recordingTime)}
-              </Text>
-            </div>
-          </div>
-        )}
-
-        {/* Audio Waveform Card - Show after recording (only for existing mode) */}
-        {mode === 'existing' && audioUrl && !isRecording && (
-          <AudioWaveform
-            audioUrl={audioUrl}
-            isPlaying={isPlaying}
-            onPlay={handlePlayPause}
-            onPause={handlePlayPause}
-          />
-        )}
-
-        {/* Recording Button (only for existing mode) */}
-        {mode === 'existing' && !audioUrl && (
-          <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-6">
-            <button
-              onClick={isRecording ? handleStopRecording : handleStartRecording}
-              className={cn(
-                "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center text-white",
-                "text-3xl md:text-4xl transition-all duration-300 transform hover:scale-110",
-                "shadow-xl hover:shadow-2xl active:scale-95",
-                isRecording
-                  ? "bg-red-500 hover:bg-red-600 animate-pulse ring-4 ring-red-200"
-                  : "bg-blue-600 hover:bg-blue-700 ring-4 ring-blue-200"
+              {recordings.length > 0 && (
+                <div className="flex justify-center pt-1">
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<CheckOutlined />}
+                    onClick={handleSubmit}
+                    className="h-10 md:h-11 px-6 md:px-8 rounded-xl bg-green-600 border-none hover:bg-green-700 shadow-md hover:shadow-lg font-semibold transition-all text-sm md:text-base"
+                  >
+                    Hoàn thành ({recordings.length} câu)
+                  </Button>
+                </div>
               )}
-            >
-              {isRecording ? <StopOutlined /> : <AudioOutlined />}
-            </button>
-            {!isRecording && (
-              <Text className="text-sm text-gray-500 font-medium">
-                Nhấn để bắt đầu ghi âm
-              </Text>
-            )}
-          </div>
-        )}
-
-        {/* Control Buttons (only for existing mode) */}
-        {mode === 'existing' && audioUrl && !isRecording && (
-          <div className="flex flex-wrap justify-center gap-3 md:gap-4">
-            <Button
-              size="large"
-              icon={<ReloadOutlined />}
-              onClick={handleRetry}
-              className="h-12 md:h-14 px-6 md:px-8 rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-semibold transition-all shadow-sm hover:shadow-md"
-            >
-              Thử lại
-            </Button>
-            <Button
-              type="primary"
-              size="large"
-              icon={<RightOutlined />}
-              onClick={handleSaveRecording}
-              loading={uploading}
-              disabled={uploading}
-              className="h-12 md:h-14 px-6 md:px-8 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all"
-            >
-              {uploading ? 'Đang tải lên...' : 'Tiếp tục →'}
-            </Button>
-          </div>
-        )}
-
-        {/* Progress Indicator (only for existing mode) */}
-        {mode === 'existing' && (
-          <div className="text-center space-y-3 pt-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full border border-blue-100">
-              <Text className="text-sm md:text-base font-medium text-blue-600">
-                Đã ghi âm: <span className="font-bold">{recordings.length}/2</span>
-              </Text>
             </div>
-            <div className="w-full max-w-md mx-auto h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-600 transition-all duration-500 rounded-full"
+          </div>
+        )}
+
+        {/* Recording Section - Fixed layout to prevent button movement (only for existing mode) */}
+        {mode === 'existing' && !audioUrl && (
+          <div className="flex flex-col" style={{ minHeight: '300px' }}>
+            {/* Recording Waveform Container - Fixed height matching AudioWaveform */}
+            <div style={{ height: '228px', overflow: 'hidden', marginBottom: '8px' }}>
+              {isRecording && mediaStream ? (
+                <RecordingWaveform mediaStream={mediaStream} isRecording={isRecording} />
+              ) : (
+                <div style={{ height: '100%' }} />
+              )}
+            </div>
+
+            {/* Recording Button Container - Fixed position, always same location, moved down slightly */}
+            <div className="flex flex-col items-center justify-center flex-1" style={{ minHeight: '140px', marginTop: '16px' }}>
+              {/* Button - Fixed size, always in same position (same size for both states) */}
+              <button
+                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                className={cn(
+                  "rounded-full flex items-center justify-center text-white",
+                  "transition-all duration-200",
+                  "shadow-xl hover:shadow-2xl active:scale-95",
+                  "focus:outline-none focus:ring-4 focus:ring-offset-2",
+                  isRecording
+                    ? "bg-red-500 hover:bg-red-600 ring-4 ring-red-200 focus:ring-red-300"
+                    : "bg-blue-600 hover:bg-blue-700 ring-4 ring-blue-200 focus:ring-blue-300"
+                )}
                 style={{
-                  width: `${(recordings.length / 2) * 100}%`
+                  width: '96px',
+                  height: '96px',
+                  minWidth: '96px',
+                  minHeight: '96px',
+                  maxWidth: '96px',
+                  maxHeight: '96px',
+                  flexShrink: 0
                 }}
+              >
+                {isRecording ? (
+                  <XFilled style={{ fontSize: '32px' }} />
+                ) : (
+                  <AudioOutlined style={{ fontSize: '32px' }} />
+                )}
+              </button>
+              {/* Text below button - Fixed height to prevent layout shift */}
+              <div className="h-6 mt-3 flex items-center justify-center px-4" style={{ minHeight: '24px' }}>
+                <Text className={cn(
+                  "text-xs md:text-sm font-medium transition-all duration-200 text-center",
+                  isRecording ? "text-red-600" : "text-gray-500"
+                )}>
+                  {isRecording ? "Đang ghi âm... Nhấn để dừng" : "Nhấn để bắt đầu ghi âm"}
+                </Text>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Audio Waveform and Control Buttons Section (only for existing mode) */}
+        {mode === 'existing' && audioUrl && !isRecording && (
+          <div className="flex flex-col" style={{ minHeight: '300px' }}>
+            {/* Audio Waveform Container - Fixed height matching RecordingWaveform */}
+            <div style={{ height: '228px', marginBottom: '8px' }}>
+              <AudioWaveform
+                audioUrl={audioUrl}
+                isPlaying={isPlaying}
+                onPlay={handlePlayPause}
+                onPause={handlePlayPause}
               />
             </div>
+
+            {/* Control Buttons Container - Same position as recording button */}
+            <div className="flex flex-col items-center justify-center flex-1" style={{ minHeight: '140px', marginTop: '16px' }}>
+              <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                <Button
+                  size="large"
+                  icon={<ReloadOutlined />}
+                  onClick={handleRetry}
+                  className="h-10 md:h-11 px-5 md:px-6 rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-semibold transition-all shadow-sm hover:shadow-md text-sm md:text-base"
+                >
+                  Thử lại
+                </Button>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<RightOutlined />}
+                  onClick={handleSaveRecording}
+                  loading={uploading}
+                  disabled={uploading}
+                  className="h-10 md:h-11 px-5 md:px-6 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all text-sm md:text-base"
+                >
+                  {uploading ? 'Đang tải lên...' : 'Tiếp tục →'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress Indicator and Submit Button */}
+        {mode === 'existing' && (
+          <div className="text-center pt-2">
+            {recordings.length > 0 && (
+              <div className="flex justify-center">
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<CheckOutlined />}
+                  onClick={async () => {
+                    // Wait a bit to ensure all state updates are complete
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    navigate('/thank-you');
+                  }}
+                  className="h-10 md:h-11 px-6 md:px-8 rounded-xl bg-green-600 border-none hover:bg-green-700 shadow-md hover:shadow-lg font-semibold transition-all text-sm md:text-base"
+                >
+                  Kết thúc
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

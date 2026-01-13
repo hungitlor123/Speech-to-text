@@ -57,14 +57,14 @@ const UserInfoPage: React.FC = () => {
             Ghi Âm
           </h1>
           <p className="text-xl md:text-2xl text-white/90 font-light">
-            Hệ thống thu thập giọng nói
+            Hệ thống thu thập câu nói
           </p>
         </div>
 
         {/* Description */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-white/20 shadow-xl">
           <p className="text-white/90 text-lg leading-relaxed">
-            Chào mừng bạn đến với hệ thống ghi âm của chúng tôi.
+            Chào mừng bạn đến với hệ thống của chúng tôi.
             <br />
             Vui lòng cung cấp thông tin để bắt đầu.
           </p>
