@@ -12,8 +12,9 @@ export interface Recording {
   PersonID: string;
   SentenceID: string;
   AudioUrl: string | null;
-  IsApproved: boolean | null;
+  IsApproved: number | boolean | null;
   RecordedAt: string;
+  Status?: number;
 }
 
 export const getSentences = async (): Promise<Sentence[]> => {
@@ -32,6 +33,16 @@ export const getRecordings = async (): Promise<Recording[]> => {
     return Array.isArray(response.data) ? response.data : [];
   } catch (error: any) {
     console.error('Error fetching recordings:', error);
+    return [];
+  }
+};
+
+export const getRecordingsByStatus = async (status: number): Promise<Recording[]> => {
+  try {
+    const response = await axiosInstance.get<{ isApproved: number; count: number; data: Recording[] }>(`recordings/status/${status}`);
+    return Array.isArray(response.data.data) ? response.data.data : [];
+  } catch (error: any) {
+    console.error('Error fetching recordings by status:', error);
     return [];
   }
 };

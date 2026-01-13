@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Modal, Form, Input, message, Popconfirm, Row, Col, Statistic, Tabs, Tag, Select } from 'antd';
 import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, CloseCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
-import { getRecordings, getSentences, createSentence, updateSentence, deleteSentence, approveRecording, rejectRecording, approveSentence, rejectSentence, downloadSentences, Recording, Sentence } from '@/services/features/recordingSlice';
+import { getRecordings, getRecordingsByStatus, getSentences, createSentence, updateSentence, deleteSentence, approveRecording, rejectRecording, approveSentence, rejectSentence, downloadSentences, Recording, Sentence } from '@/services/features/recordingSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '@/services/features/userSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { TextArea } = Input;
 
 const ManagerRecords: React.FC = () => {
@@ -21,6 +21,7 @@ const ManagerRecords: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSentence, setEditingSentence] = useState<Sentence | null>(null);
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
+  const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [form] = Form.useForm();
 
@@ -30,10 +31,19 @@ const ManagerRecords: React.FC = () => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  const fetchRecordings = async () => {
+  useEffect(() => {
+    fetchRecordings(recordingStatusFilter);
+  }, [recordingStatusFilter]);
+
+  const fetchRecordings = async (status?: number | null) => {
     setLoadingRecordings(true);
     try {
-      const data = await getRecordings();
+      let data;
+      if (status !== null && status !== undefined) {
+        data = await getRecordingsByStatus(status);
+      } else {
+        data = await getRecordings();
+      }
       setRecordings(data);
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
@@ -267,13 +277,18 @@ const ManagerRecords: React.FC = () => {
       title: 'Trạng thái',
       dataIndex: 'IsApproved',
       key: 'IsApproved',
-      width: 100,
-      render: (isApproved: boolean) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isApproved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-          }`}>
-          {isApproved ? 'Đã duyệt' : 'Chờ duyệt'}
-        </span>
-      ),
+      width: 150,
+      render: (isApproved: number | boolean | null) => {
+        const statusConfig: { [key: number]: { color: string; label: string } } = {
+          0: { color: 'gold', label: 'Chờ duyệt' },
+          1: { color: 'green', label: 'Đã duyệt' },
+          2: { color: 'red', label: 'Bị từ chối' },
+          3: { color: 'orange', label: 'Trùng lặp' },
+        };
+        const status = typeof isApproved === 'number' ? isApproved : (isApproved ? 1 : 0);
+        const config = statusConfig[status] || { color: 'default', label: 'Unknown' };
+        return <Tag color={config.color}>{config.label}</Tag>;
+      },
     },
     {
       title: 'Hành động',
@@ -290,7 +305,7 @@ const ManagerRecords: React.FC = () => {
           >
             {playingId === record.RecordingID ? 'Đang phát' : 'Phát'}
           </Button>
-          {!record.IsApproved && (
+          {(record.IsApproved === 0 || record.IsApproved === false || record.IsApproved === null) && (
             <>
               <Button
                 icon={<CheckCircleOutlined />}
@@ -332,7 +347,7 @@ const ManagerRecords: React.FC = () => {
       width: 150,
       render: (status: number) => {
         const statusConfig: { [key: number]: { color: string; label: string } } = {
-          0: { color: 'default', label: 'Chưa duyệt' },
+          0: { color: 'default', label: 'Chờ duyệt' },
           1: { color: 'green', label: 'Đã duyệt' },
           2: { color: 'blue', label: 'Đã thu âm' },
           3: { color: 'red', label: 'Bị từ chối' },
@@ -413,7 +428,7 @@ const ManagerRecords: React.FC = () => {
     },
   ];
 
-  const approvedCount = recordings.filter((r) => r.IsApproved).length;
+  const approvedCount = recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length;
 
   return (
     <div className="flex">
@@ -508,9 +523,23 @@ const ManagerRecords: React.FC = () => {
                   children: (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <Text className="text-gray-600">
-                          Quản lý tất cả các bản ghi âm từ người dùng
-                        </Text>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
+                          <Select
+                            placeholder="Chọn trạng thái"
+                            style={{ width: 200 }}
+                            allowClear
+                            value={recordingStatusFilter}
+                            onChange={setRecordingStatusFilter}
+                            options={[
+                              { label: 'Tất cả', value: null },
+                              { label: 'Chờ duyệt', value: 0 },
+                              { label: 'Đã duyệt', value: 1 },
+                              { label: 'Bị từ chối', value: 2 },
+                              { label: 'Trùng lặp', value: 3 },
+                            ]}
+                          />
+                        </div>
                         <Button
                           icon={<DownloadOutlined />}
                           onClick={handleDownloadAll}
@@ -562,7 +591,7 @@ const ManagerRecords: React.FC = () => {
                               onChange={setStatusFilter}
                               options={[
                                 { label: 'Tất cả', value: null },
-                                { label: 'Chưa duyệt', value: 0 },
+                                { label: 'Chờ duyệt', value: 0 },
                                 { label: 'Đã duyệt', value: 1 },
                                 { label: 'Đã thu âm', value: 2 },
                                 { label: 'Bị từ chối', value: 3 },

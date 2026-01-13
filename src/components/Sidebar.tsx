@@ -6,6 +6,7 @@ import {
   Mic,
   LogOut,
   Menu,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -32,6 +33,7 @@ const Sidebar = () => {
         { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },
         { icon: Mic, label: 'Bản Thu', path: '/admin/recording' },
         { icon: Users, label: 'Người dùng', path: '/admin/users' },
+        { icon: Trophy, label: 'Top Đóng Góp', path: '/admin/contributions' },
       ];
 
   const handleLogout = () => {

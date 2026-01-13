@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   type LucideIcon,
+  Trophy,
 } from 'lucide-react';
 
 type MenuItem = {
@@ -16,23 +17,17 @@ type MenuItem = {
   children?: MenuItem[];
 };
 
-const Sidebar = () => {
+const SidebarManager = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const userRole = localStorage.getItem('userRole') || 'Admin';
-
-  const menuItems: MenuItem[] = userRole === 'Manager'
-    ? [
-        { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
-        { icon: Mic, label: 'Bản Thu', path: '/manager/recording' },
-        { icon: Users, label: 'Người dùng', path: '/manager/users' },
-      ]
-    : [
-        { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },
-        { icon: Mic, label: 'Bản Thu', path: '/admin/recording' },
-        { icon: Users, label: 'Người dùng', path: '/admin/users' },
-      ];
+  // SidebarManager luôn phục vụ role Manager nên dùng menu cố định
+  const menuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
+    { icon: Mic, label: 'Bản Thu', path: '/manager/recording' },
+    { icon: Users, label: 'Người dùng', path: '/manager/users' },
+    { icon: Trophy, label: 'Top Đóng Góp', path: '/manager/contributions' },
+  ];
 
   const handleLogout = () => {
     localStorage.clear();
@@ -105,4 +100,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default SidebarManager;
