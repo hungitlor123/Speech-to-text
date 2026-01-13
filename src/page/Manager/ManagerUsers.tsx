@@ -26,7 +26,7 @@ const ManagerUsers: React.FC = () => {
   }, [dispatch]);
 
   const fetchTopRecorders = async () => {
-    setLoadingTopRecorders(true); 
+    setLoadingTopRecorders(true);
     try {
       const data = await getTopRecorders({ limit: 6 });
       setTopRecorders(data);
@@ -40,14 +40,14 @@ const ManagerUsers: React.FC = () => {
   const handleDeleteUser = async (personId: string, userName: string) => {
     try {
       await dispatch(deleteUser(personId)).unwrap();
-      message.success(`Đã xóa người dùng ${userName} thành công`);
+      message.success(`Đã xóa tình nguyện viên ${userName} thành công`);
     } catch (error: any) {
-      message.error(error.message || 'Không thể xóa người dùng');
+      message.error(error.message || 'Không thể xóa tình nguyện viên');
     }
   };
 
   const columns = [
-    
+
     {
       title: 'Tên',
       dataIndex: 'Name',
@@ -84,15 +84,15 @@ const ManagerUsers: React.FC = () => {
       render: (_: any, record: any) => (
         <Space>
           <Popconfirm
-            title="Xóa người dùng"
-            description={`Bạn có chắc chắn muốn xóa người dùng "${record.Name}"?`}
+            title="Xóa tình nguyện viên"
+            description={`Bạn có chắc chắn muốn xóa tình nguyện viên "${record.Name}"?`}
             onConfirm={() => handleDeleteUser(record.PersonID, record.Name)}
             okText="Xóa"
             cancelText="Hủy"
             okButtonProps={{ danger: true, loading: deletingUser }}
           >
-            <Button 
-              danger 
+            <Button
+              danger
               icon={<DeleteOutlined />}
               loading={deletingUser}
               size="small"
@@ -112,10 +112,10 @@ const ManagerUsers: React.FC = () => {
   const filteredUsers = users.filter((user) => {
     const matchName = user.Name.toLowerCase().includes(searchName.toLowerCase());
     const matchGender = filterGender ? user.Gender === filterGender : true;
-    const matchDate = filterDate 
-      ? new Date(user.CreatedAt).toDateString() === filterDate.toDate().toDateString() 
+    const matchDate = filterDate
+      ? new Date(user.CreatedAt).toDateString() === filterDate.toDate().toDateString()
       : true;
-    
+
     return matchName && matchGender && matchDate;
   });
 
@@ -132,14 +132,14 @@ const ManagerUsers: React.FC = () => {
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-3 py-4">
-            <Title 
-              level={1} 
+            <Title
+              level={1}
               className="!mb-0 !text-4xl md:!text-5xl !font-bold !text-blue-600"
               style={{ letterSpacing: '-0.02em' }}
             >
-              Quản Lý Người Dùng
+              QL Tình Nguyện Viên
             </Title>
-            
+
           </div>
 
           {/* Statistics Cards */}
@@ -153,7 +153,7 @@ const ManagerUsers: React.FC = () => {
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                           <TeamOutlined className="text-blue-600" />
                         </div>
-                        <span className="text-gray-600 font-medium">Tổng người dùng</span>
+                        <span className="text-gray-600 font-medium">Tổng tình nguyện viên</span>
                       </div>
                     }
                     value={users.length}
@@ -207,9 +207,9 @@ const ManagerUsers: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <Title level={3} className="!text-blue-600 !mb-2">
-                  Danh sách người dùng
+                  Danh sách tình nguyện viên
                 </Title>
-                
+
               </div>
 
               {/* Filter Section */}
@@ -249,7 +249,7 @@ const ManagerUsers: React.FC = () => {
 
               {/* Results Info */}
               <div>
-                
+
               </div>
 
               {usersLoading ? (
@@ -265,7 +265,7 @@ const ManagerUsers: React.FC = () => {
                   scroll={{ x: 800 }}
                 />
               ) : (
-                <Empty description="Không tìm thấy người dùng phù hợp" style={{ marginTop: 50 }} />
+                <Empty description="Không tìm thấy tình nguyện viên phù hợp" style={{ marginTop: 50 }} />
               )}
             </div>
           </div>
@@ -298,15 +298,14 @@ const ManagerUsers: React.FC = () => {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
-                              index === 0
-                                ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
-                                : index === 1
+                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${index === 0
+                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
+                              : index === 1
                                 ? 'bg-gradient-to-r from-gray-400 to-gray-500'
                                 : index === 2
-                                ? 'bg-gradient-to-r from-orange-400 to-orange-500'
-                                : 'bg-gray-400'
-                            }`}
+                                  ? 'bg-gradient-to-r from-orange-400 to-orange-500'
+                                  : 'bg-gray-400'
+                              }`}
                           >
                             {index + 1}
                           </span>

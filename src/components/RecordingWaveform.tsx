@@ -59,13 +59,13 @@ const RecordingWaveform: React.FC<RecordingWaveformProps> = ({ mediaStream, isRe
       for (let i = 0; i < barCount; i++) {
         const dataIndex = Math.floor((i / barCount) * bufferLength);
         const barHeight = (dataArray[dataIndex] / 255) * height * 0.8;
-        
+
         // Create gradient
         const gradient = ctx.createLinearGradient(0, height / 2 - barHeight / 2, 0, height / 2 + barHeight / 2);
         gradient.addColorStop(0, '#3b82f6');
         gradient.addColorStop(0.5, '#2563eb');
         gradient.addColorStop(1, '#1d4ed8');
-        
+
         ctx.fillStyle = gradient;
         ctx.fillRect(
           i * barWidth + barGap,
@@ -95,12 +95,12 @@ const RecordingWaveform: React.FC<RecordingWaveformProps> = ({ mediaStream, isRe
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 shadow-sm">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 shadow-sm" style={{ height: '228px', display: 'flex', flexDirection: 'column' }}>
+      <div className="flex items-center gap-4 mb-4" style={{ height: '56px', flexShrink: 0 }}>
         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
         <span className="text-sm font-semibold text-gray-700">Đang ghi âm...</span>
       </div>
-      <div className="w-full rounded-lg bg-white/50 p-4 h-24 flex items-center justify-center">
+      <div className="w-full rounded-lg bg-white/50 p-3 flex items-center justify-center flex-1" style={{ minHeight: 0 }}>
         <canvas
           ref={canvasRef}
           className="w-full h-full"

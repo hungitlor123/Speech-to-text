@@ -1,16 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from 'antd';
 import { AudioOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
 import { resetUserState } from '@/services/features/userSlice';
+import { store } from '@/services/store/store';
 
 const ThankYouPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { userInfo, recordings } = useAppSelector((state) => state.user);
+  const [recordingCount, setRecordingCount] = useState(() => {
+    // Get initial count directly from store to ensure accuracy
+    const state = store.getState();
+    return state.user.recordings.length;
+  });
 
+  // Ensure we get the latest recording count - check multiple times to catch state updates
+  useEffect(() => {
+    // Get count directly from store for maximum accuracy
+    const updateCount = () => {
+      const state = store.getState();
+      const count = state.user.recordings.length;
+      setRecordingCount(count);
+    };
 
+    // Set initial value
+    updateCount();
+
+    // Check again after short delays to catch any late state updates
+    const timeout1 = setTimeout(updateCount, 50);
+    const timeout2 = setTimeout(updateCount, 200);
+    const timeout3 = setTimeout(updateCount, 500);
+
+    return () => {
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+    };
+  }, [recordings.length]);
 
   const handleBackHome = () => {
     // Reset toàn bộ trạng thái user để có thể nhập lại từ đầu
@@ -62,7 +90,7 @@ const ThankYouPage: React.FC = () => {
           {/* Recording Count */}
           <div className="space-y-2">
             <div className="text-7xl md:text-8xl font-bold text-white drop-shadow-lg">
-              {recordings.length}
+              {recordingCount || recordings.length}
             </div>
             <p className="text-2xl md:text-3xl text-white/90 font-light">
               câu ghi âm

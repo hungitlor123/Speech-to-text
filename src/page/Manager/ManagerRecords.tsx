@@ -246,7 +246,7 @@ const ManagerRecords: React.FC = () => {
   const recordingColumns = [
 
     {
-      title: 'Người dùng',
+      title: 'Tình nguyện viên',
       dataIndex: 'PersonID',
       key: 'PersonID',
       width: 200,
@@ -265,16 +265,7 @@ const ManagerRecords: React.FC = () => {
         return <span className="text-gray-900">{sentence?.Content || 'Unknown'}</span>;
       },
     },
-    {
-      title: 'Ngày ghi',
-      dataIndex: 'RecordedAt',
-      key: 'RecordedAt',
-      width: 180,
-      render: (date: string) => {
-        if (!date) return '-';
-        return new Date(date).toLocaleString('vi-VN');
-      },
-    },
+
     {
       title: 'Trạng thái',
       dataIndex: 'IsApproved',

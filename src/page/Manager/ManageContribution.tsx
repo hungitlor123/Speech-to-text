@@ -64,10 +64,10 @@ const ManageContribution: React.FC = () => {
       width: 250,
       render: (name: string, record: TopContributor) => (
         <div className="flex items-center gap-3">
-          <Avatar 
-            size={48} 
-            icon={<UserOutlined />} 
-            style={{ 
+          <Avatar
+            size={48}
+            icon={<UserOutlined />}
+            style={{
               backgroundColor: '#1890ff',
               fontSize: '20px'
             }}
@@ -124,7 +124,7 @@ const ManageContribution: React.FC = () => {
       title: 'Tổng đóng góp',
       key: 'total',
       width: 200,
-      sorter: (a: TopContributor, b: TopContributor) => 
+      sorter: (a: TopContributor, b: TopContributor) =>
         (a.totalSentences) - (b.totalSentences),
       render: (_: unknown, record: TopContributor) => {
         const total = (record?.totalSentences || 0);
@@ -159,7 +159,7 @@ const ManageContribution: React.FC = () => {
                 Top Người Đóng Góp
               </Title>
             </div>
-            
+
           </div>
 
           {/* Top 3 Podium */}
@@ -169,17 +169,17 @@ const ManageContribution: React.FC = () => {
               <Col xs={24} md={8}>
                 <Card
                   className="text-center shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ 
+                  style={{
                     borderTop: '4px solid #C0C0C0',
                     background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)'
                   }}
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <TrophyOutlined style={{ fontSize: '28px', color: '#C0C0C0' }} />
-                    <Avatar 
-                      size={56} 
+                    <Avatar
+                      size={56}
                       icon={<UserOutlined />}
-                      style={{ 
+                      style={{
                         backgroundColor: '#1890ff',
                         fontSize: '22px'
                       }}
@@ -199,7 +199,7 @@ const ManageContribution: React.FC = () => {
               <Col xs={24} md={8}>
                 <Card
                   className="text-center shadow-xl hover:shadow-2xl transition-shadow"
-                  style={{ 
+                  style={{
                     borderTop: '4px solid #FFD700',
                     background: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)',
                     transform: 'scale(1.05)'
@@ -207,10 +207,10 @@ const ManageContribution: React.FC = () => {
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <CrownOutlined style={{ fontSize: '34px', color: '#FFD700' }} />
-                    <Avatar 
-                      size={68} 
+                    <Avatar
+                      size={68}
                       icon={<UserOutlined />}
-                      style={{ 
+                      style={{
                         backgroundColor: '#1890ff',
                         fontSize: '26px',
                         border: '2px solid #FFD700'
@@ -231,17 +231,17 @@ const ManageContribution: React.FC = () => {
               <Col xs={24} md={8}>
                 <Card
                   className="text-center shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ 
+                  style={{
                     borderTop: '4px solid #CD7F32',
                     background: 'linear-gradient(135deg, #fef3e8 0%, #ffffff 100%)'
                   }}
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <TrophyOutlined style={{ fontSize: '28px', color: '#CD7F32' }} />
-                    <Avatar 
-                      size={56} 
+                    <Avatar
+                      size={56}
                       icon={<UserOutlined />}
-                      style={{ 
+                      style={{
                         backgroundColor: '#1890ff',
                         fontSize: '22px'
                       }}
@@ -326,7 +326,7 @@ const ManageContribution: React.FC = () => {
                 <TrophyOutlined className="mr-2" />
                 Bảng xếp hạng
               </Title>
-              
+
             </div>
 
             {loading ? (
@@ -338,8 +338,8 @@ const ManageContribution: React.FC = () => {
                 columns={columns}
                 dataSource={topContributors}
                 rowKey={(record) => record.userId || record.userName}
-                pagination={{ 
-                  pageSize: 20, 
+                pagination={{
+                  pageSize: 20,
                   responsive: true,
                   showTotal: (total) => `Tổng ${total} người dùng`
                 }}
