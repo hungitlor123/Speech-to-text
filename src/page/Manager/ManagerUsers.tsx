@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Table, Spin, Empty, Row, Col, Statistic, Tag, Button, Popconfirm, message, Space, Input, DatePicker, Select } from 'antd';
 import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, SearchOutlined } from '@ant-design/icons';
-import Sidebar from '@/components/Sidebar';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '@/services/features/userSlice';
 import { getTopRecorders, TopRecorder } from '@/services/features/recordingSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 import type { Dayjs } from 'dayjs';
+import SidebarManager from '@/components/SidebarManager';
 
 const { Title, Text } = Typography;
 
@@ -126,7 +127,7 @@ const ManagerUsers: React.FC = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <SidebarManager />
       <div className="flex-1 min-h-screen bg-gray-50 py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Row, Col, Statistic, Table, Button, Space, Spin, Empty, message } from 'antd';
 import { AudioOutlined, CheckCircleOutlined, ClockCircleOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { getRecordings, getSentences, approveRecording, rejectRecording, Recording, Sentence } from '@/services/features/recordingSlice';
-import Sidebar from '@/components/Sidebar';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '@/services/features/userSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
+import SidebarManager from '@/components/SidebarManager';
 
 const { Title, Text } = Typography;
 
@@ -162,7 +163,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <SidebarManager />
       <div className="flex-1 min-h-screen bg-white py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}

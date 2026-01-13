@@ -27,6 +27,16 @@ export interface User {
   CreatedAt: string;
 }
 
+export interface TopContributor {
+  userName: string;
+  userId: string | null;
+  totalSentences: number;
+  status1Count: number;
+  status2Count: number;
+  status3Count: number;
+  createdAt: string | null;
+}
+
 export interface AvailableSentence {
   SentenceID: string;
   Content: string;
@@ -106,6 +116,14 @@ export const deleteUser = createAsyncThunk(
   async (personId: string): Promise<{ personId: string }> => {
     await axiosInstance.delete(`users/${personId}`);
     return { personId };
+  }
+);
+
+export const fetchTopContributors = createAsyncThunk(
+  "user/fetchTopContributors",
+  async (): Promise<TopContributor[]> => {
+    const response = await axiosInstance.get<{ filter: any; count: number; data: TopContributor[] }>("users/top-sentence-contributors");
+    return response.data.data || [];
   }
 );
 
