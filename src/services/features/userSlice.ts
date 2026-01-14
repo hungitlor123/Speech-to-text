@@ -23,8 +23,14 @@ export interface User {
   PersonID: string;
   Name: string;
   Gender: string;
-  Role: string;
+  Role?: string;
   CreatedAt: string;
+  SentencesDone?: Array<{
+    SentenceID: string;
+    Content: string;
+  }>;
+  TotalRecordingDuration?: number;
+  TotalSentencesDone?: number;
 }
 
 export interface TopContributor {
@@ -208,7 +214,7 @@ const userSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.usersLoading = false;
-        state.users = action.payload;
+        state.users = Array.isArray(action.payload) ? action.payload : (action.payload?.data || []);
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.usersLoading = false;

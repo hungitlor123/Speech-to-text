@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Statistic, Tag, Button, Popconfirm, message, Space, Input, DatePicker, Select } from 'antd';
-import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, SearchOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col, Statistic, Tag, Button, Popconfirm, message, Space, Modal } from 'antd';
+import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '@/services/features/userSlice';
 import { getTopRecorders, TopRecorder } from '@/services/features/recordingSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
-import type { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -15,9 +14,12 @@ const ManagerUsers: React.FC = () => {
   const { users, usersLoading, deletingUser } = useSelector((state: RootState) => state.user);
   const [topRecorders, setTopRecorders] = useState<TopRecorder[]>([]);
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
-  const [searchName, setSearchName] = useState('');
-  const [filterGender, setFilterGender] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState<Dayjs | null>(null);
+  const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
+  const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string }>>([]);
+  const [selectedUserName, setSelectedUserName] = useState('');
+  const [contributedSentencesModalVisible, setContributedSentencesModalVisible] = useState(false);
+  const [selectedUserContributedSentences, setSelectedUserContributedSentences] = useState<Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>>([]);
+  const [selectedContributorName, setSelectedContributorName] = useState('');
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -44,8 +46,25 @@ const ManagerUsers: React.FC = () => {
       message.error(error.message || 'Không thể xóa người dùng');
     }
   };
-
+  const handleShowSentences = (userName: string, sentences?: Array<{ SentenceID: string; Content: string }>) => {
+    setSelectedUserName(userName);
+    setSelectedUserSentences(sentences || []);
+    setSentencesModalVisible(true);
+  };
+  const handleShowContributedSentences = (userName: string, sentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>) => {
+    setSelectedContributorName(userName);
+    setSelectedUserContributedSentences(sentences || []);
+    setContributedSentencesModalVisible(true);
+  };
   const columns = [
+    {
+      title: 'STT',
+        width: 60,
+      key: 'stt',
+      render: (_: any, __: any, index: number) => (
+        <span className="font-medium text-gray-900">{index + 1}</span>
+      ),
+    },
     {
       title: 'Tên',
       dataIndex: 'Name',
@@ -61,6 +80,53 @@ const ManagerUsers: React.FC = () => {
       render: (gender: string) => (
         <Tag color={gender === 'Male' ? 'blue' : 'pink'} className="font-medium">
           {gender === 'Male' ? 'Nam' : 'Nữ'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Số câu đã làm',
+      dataIndex: 'TotalSentencesDone',
+      key: 'TotalSentencesDone',
+      width: 120,
+      align: 'center' as const,
+      sorter: (a: any, b: any) => (a.TotalSentencesDone || 0) - (b.TotalSentencesDone || 0),
+      render: (total: number, record: any) => (
+        <Tag 
+          color="blue" 
+          className="font-medium cursor-pointer hover:opacity-80"
+          onClick={() => handleShowSentences(record.Name, record.SentencesDone)}
+        >
+          {total || 0} câu
+        </Tag>
+      ),
+    },
+    {
+      title: 'Tổng thời lượng',
+      dataIndex: 'TotalRecordingDuration',
+      key: 'TotalRecordingDuration',
+      width: 140,
+      align: 'center' as const,
+      sorter: (a: any, b: any) => (a.TotalRecordingDuration || 0) - (b.TotalRecordingDuration || 0),
+      render: (duration: number) => (
+        <Tag color="green" className="font-medium">
+          {duration ? `${duration.toFixed(2)}s` : '0s'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Số câu đóng góp',
+      dataIndex: 'TotalContributedByUser',
+      key: 'TotalContributedByUser',
+      width: 130,
+      align: 'center' as const,
+      sorter: (a: any, b: any) => (a.TotalContributedByUser || 0) - (b.TotalContributedByUser || 0),
+      render: (total: number, record: any) => (
+        <Tag 
+          color="purple" 
+          className="font-medium cursor-pointer hover:opacity-80"
+          onClick={() => handleShowContributedSentences(record.Name, record.CreatedSentences)}
+        >
+          {total || 0} câu
         </Tag>
       ),
     },
@@ -105,23 +171,6 @@ const ManagerUsers: React.FC = () => {
 
   const maleCount = users.filter((u) => u.Gender === 'Male').length;
   const femaleCount = users.filter((u) => u.Gender === 'Female').length;
-
-  // Filter data based on search and filter criteria
-  const filteredUsers = users.filter((user) => {
-    const matchName = user.Name.toLowerCase().includes(searchName.toLowerCase());
-    const matchGender = filterGender ? user.Gender === filterGender : true;
-    const matchDate = filterDate 
-      ? new Date(user.CreatedAt).toDateString() === filterDate.toDate().toDateString() 
-      : true;
-    
-    return matchName && matchGender && matchDate;
-  });
-
-  const handleClearFilters = () => {
-    setSearchName('');
-    setFilterGender(null);
-    setFilterDate(null);
-  };
 
   return (
     <div className="flex">
@@ -211,48 +260,16 @@ const ManagerUsers: React.FC = () => {
               </div>
 
               {/* Filters Section */}
-              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Input
-                    placeholder="Tìm kiếm theo tên..."
-                    prefix={<SearchOutlined />}
-                    value={searchName}
-                    onChange={(e) => setSearchName(e.target.value)}
-                    allowClear
-                  />
-                  <Select
-                    placeholder="Chọn giới tính"
-                    value={filterGender}
-                    onChange={setFilterGender}
-                    allowClear
-                    options={[
-                      { label: 'Nam', value: 'Male' },
-                      { label: 'Nữ', value: 'Female' }
-                    ]}
-                  />
-                  <DatePicker
-                    placeholder="Chọn ngày tạo"
-                    value={filterDate}
-                    onChange={setFilterDate}
-                  />
-                  <Button 
-                    onClick={handleClearFilters}
-                    type="default"
-                  >
-                    Xóa bộ lọc
-                  </Button>
-                </div>
-                
-              </div>
+             
 
               {usersLoading ? (
                 <div className="flex justify-center py-12">
                   <Spin size="large" />
                 </div>
-              ) : filteredUsers.length > 0 ? (
+              ) : users.length > 0 ? (
                 <Table
                   columns={columns}
-                  dataSource={filteredUsers}
+                  dataSource={users}
                   rowKey="PersonID"
                   pagination={{ pageSize: 10, responsive: true }}
                   scroll={{ x: 800 }}
@@ -365,6 +382,86 @@ const ManagerUsers: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal hiển thị danh sách câu đã làm */}
+      <Modal
+        title={`Danh sách câu đã làm - ${selectedUserName}`}
+        open={sentencesModalVisible}
+        onCancel={() => setSentencesModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setSentencesModalVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+      >
+        {selectedUserSentences.length > 0 ? (
+          <div className="space-y-3">
+            {selectedUserSentences.map((sentence, index) => (
+              <div 
+                key={sentence.SentenceID} 
+                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-900 font-medium mb-1">{sentence.Content}</p>
+                    <p className="text-xs text-gray-500">ID: {sentence.SentenceID}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty description="Chưa có câu nào được hoàn thành" />
+        )}
+      </Modal>
+
+      {/* Modal hiển thị danh sách câu đóng góp */}
+      <Modal
+        title={`Danh sách câu đóng góp - ${selectedContributorName}`}
+        open={contributedSentencesModalVisible}
+        onCancel={() => setContributedSentencesModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setContributedSentencesModalVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+      >
+        {selectedUserContributedSentences.length > 0 ? (
+          <div className="space-y-3">
+            {selectedUserContributedSentences.map((sentence, index) => (
+              <div 
+                key={sentence.SentenceID} 
+                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span className="text-purple-600 font-semibold text-sm">{index + 1}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-900 font-medium mb-1">{sentence.Content}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <p className="text-xs text-gray-500">ID: {sentence.SentenceID}</p>
+                      <Tag color={sentence.Status === 1 ? 'green' : sentence.Status === 2 ? 'red' : 'blue'} className="text-xs">
+                        {sentence.Status === 1 ? 'Đã duyệt' : sentence.Status === 2 ? 'Từ chối' : 'Chờ duyệt'}
+                      </Tag>
+                      <span className="text-xs text-gray-400">
+                        {new Date(sentence.CreatedAt).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty description="Chưa có câu nào được đóng góp" />
+        )}
+      </Modal>
     </div>
   );
 };

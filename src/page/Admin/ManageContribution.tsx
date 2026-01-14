@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Table, Spin, Empty, Card, Row, Col, Statistic, Avatar } from 'antd';
-import { TrophyOutlined, UserOutlined, AudioOutlined, FileTextOutlined, CrownOutlined, StarOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { TrophyOutlined, UserOutlined, AudioOutlined, FileTextOutlined, CrownOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { fetchTopContributors, TopContributor } from '@/services/features/userSlice';
 import { useDispatch } from 'react-redux';
@@ -29,30 +29,32 @@ const ManageContribution: React.FC = () => {
     }
   };
 
-  const getMedalIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <CrownOutlined style={{ fontSize: '24px', color: '#FFD700' }} />;
-      case 2:
-        return <TrophyOutlined style={{ fontSize: '24px', color: '#C0C0C0' }} />;
-      case 3:
-        return <TrophyOutlined style={{ fontSize: '24px', color: '#CD7F32' }} />;
-      default:
-        return <StarOutlined style={{ fontSize: '20px', color: '#1890ff' }} />;
-    }
-  };
-
   const columns = [
     {
       title: 'Hạng',
       key: 'rank',
-      width: 100,
+      width: 120,
       render: (_: unknown, __: TopContributor, index: number) => {
-        const rank = index + 1;
         return (
-          <div className="flex items-center justify-center gap-2">
-            {getMedalIcon(rank)}
-            <Text strong style={{ fontSize: '18px' }}>#{rank}</Text>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
+                  index === 0
+                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
+                    : index === 1
+                    ? 'bg-gradient-to-r from-gray-400 to-gray-500'
+                    : index === 2
+                    ? 'bg-gradient-to-r from-orange-400 to-orange-500'
+                    : 'bg-blue-400'
+                }`}
+              >
+                {index + 1}
+              </span>
+              <span className="text-xs font-semibold text-amber-700">
+                {index === 0 ? 'Vàng' : index === 1 ? 'Bạc' : index === 2 ? 'Đồng' : `#${index + 1}`}
+              </span>
+            </div>
           </div>
         );
       },

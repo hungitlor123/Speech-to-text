@@ -28,6 +28,7 @@ const Sidebar = () => {
       { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
       { icon: Mic, label: 'Bản Thu', path: '/manager/recording' },
       { icon: Users, label: 'Người dùng', path: '/manager/users' },
+      { icon: Trophy, label: 'Top Đóng Góp', path: '/manager/contributions' },
     ]
     : [
       { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },

@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Modal, Form, Input, message, Popconfirm, Row, Col, Statistic, Tabs, Tag, Select } from 'antd';
-import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, CloseCircleOutlined, DownloadOutlined } from '@ant-design/icons';
-
-import { getRecordings, getRecordingsByStatus, getSentences, createSentence, updateSentence, deleteSentence, approveRecording, rejectRecording, approveSentence, rejectSentence, downloadSentences, Recording, Sentence } from '@/services/features/recordingSlice';
+import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { getRecordings, getRecordingsByStatus, getSentences, createSentence, updateSentence, deleteSentence, approveRecording, rejectRecording, approveSentence, rejectSentence, Recording, Sentence } from '@/services/features/recordingSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '@/services/features/userSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 import SidebarManager from '@/components/SidebarManager';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const ManagerRecords: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { users } = useSelector((state: RootState) => state.user);
-  const userRole = localStorage.getItem('userRole');
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [loadingRecordings, setLoadingRecordings] = useState(true);
@@ -24,7 +22,6 @@ const ManagerRecords: React.FC = () => {
   const [editingSentence, setEditingSentence] = useState<Sentence | null>(null);
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
   const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | null>(null);
-  const [downloading, setDownloading] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -145,76 +142,6 @@ const ManagerRecords: React.FC = () => {
     } catch (error) {
       console.error('Failed to reject sentence:', error);
       message.error('Từ chối câu thất bại');
-    }
-  };
-
-  const handleDownloadAll = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'all' });
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `all-audio-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      message.success('Tải toàn bộ audio thành công');
-    } catch (error) {
-      console.error('Failed to download all audio:', error);
-      message.error('Tải toàn bộ audio thất bại');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const handleDownloadWithAudio = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'with-audio' });
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `sentences-with-audio-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      message.success('Tải câu đã thu thành công');
-    } catch (error) {
-      console.error('Failed to download sentences with audio:', error);
-      message.error('Tải câu đã thu thất bại');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const handleDownloadApproved = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'approved' });
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `sentences-approved-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      message.success('Tải câu đã duyệt thành công');
-    } catch (error) {
-      console.error('Failed to download approved sentences:', error);
-      message.error('Tải câu đã duyệt thất bại');
-    } finally {
-      setDownloading(false);
     }
   };
 
@@ -427,77 +354,78 @@ const ManagerRecords: React.FC = () => {
     <div className="flex">
       <SidebarManager />
       <div className="flex-1 min-h-screen bg-gray-50 py-8 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
-          <div className="text-center space-y-3 py-4">
+          <div className="space-y-2">
             <Title
               level={1}
-              className="!mb-0 !text-4xl md:!text-5xl !font-bold !text-blue-600"
+              className="!mb-0 !text-3xl md:!text-4xl !font-bold !text-blue-600"
               style={{ letterSpacing: '-0.02em' }}
             >
               Quản Lý Bản Thu & Câu
             </Title>
+            <Text className="text-gray-500">Quản lý và duyệt dữ liệu ghi âm</Text>
           </div>
 
           {/* Statistics Cards */}
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8} lg={8}>
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <AudioOutlined className="text-blue-600" />
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={12} md={8} lg={8}>
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
+                          <div className="bg-white rounded-[1rem] p-6">
+                            <Statistic
+                              title={
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <AudioOutlined className="text-blue-600" />
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Tổng ghi âm</span>
+                                </div>
+                              }
+                              value={recordings.length}
+                              valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
+                            />
+                          </div>
                         </div>
-                        <span className="text-gray-600 font-medium">Tổng ghi âm</span>
-                      </div>
-                    }
-                    value={recordings.length}
-                    valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={24} sm={12} md={8} lg={8}>
-              <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <CheckCircleOutlined className="text-green-600" />
+                      </Col>
+          
+                      <Col xs={24} sm={12} md={8} lg={8}>
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-[1px] shadow-md">
+                          <div className="bg-white rounded-[1rem] p-6">
+                            <Statistic
+                              title={
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                    <CheckCircleOutlined className="text-green-600" />
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Đã duyệt</span>
+                                </div>
+                              }
+                              value={approvedCount}
+                              valueStyle={{ color: '#16a34a', fontSize: '32px', fontWeight: 'bold' }}
+                            />
+                          </div>
                         </div>
-                        <span className="text-gray-600 font-medium">Đã duyệt</span>
-                      </div>
-                    }
-                    value={approvedCount}
-                    valueStyle={{ color: '#16a34a', fontSize: '32px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={24} sm={12} md={8} lg={8}>
-              <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                          <FileTextOutlined className="text-purple-600" />
+                      </Col>
+          
+                      <Col xs={24} sm={12} md={8} lg={8}>
+                        <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl p-[1px] shadow-md">
+                          <div className="bg-white rounded-[1rem] p-6">
+                            <Statistic
+                              title={
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                    <FileTextOutlined className="text-purple-600" />
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Tổng câu</span>
+                                </div>
+                              }
+                              value={sentences.length}
+                              valueStyle={{ color: '#9333ea', fontSize: '32px', fontWeight: 'bold' }}
+                            />
+                          </div>
                         </div>
-                        <span className="text-gray-600 font-medium">Tổng câu</span>
-                      </div>
-                    }
-                    value={sentences.length}
-                    valueStyle={{ color: '#9333ea', fontSize: '32px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
+                      </Col>
+                    </Row>
 
           {/* Tables */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -511,12 +439,10 @@ const ManagerRecords: React.FC = () => {
                       <AudioOutlined />
                       Danh sách ghi âm
                     </span>
-
                   ),
                   children: (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
                           <Select
@@ -534,19 +460,6 @@ const ManagerRecords: React.FC = () => {
                             ]}
                           />
                         </div>
-
-
-
-                        {userRole === 'Admin' && (
-                          <Button
-                            icon={<DownloadOutlined />}
-                            onClick={handleDownloadAll}
-                            loading={downloading}
-                            className="bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-600"
-                          >
-                            Tải toàn bộ Audio
-                          </Button>
-                        )}
                       </div>
 
                       {loadingRecordings ? (
@@ -565,7 +478,6 @@ const ManagerRecords: React.FC = () => {
                         <Empty description="Chưa có bản ghi âm nào" style={{ marginTop: 50 }} />
                       )}
                     </div>
-
                   ),
                 },
                 {
@@ -579,56 +491,33 @@ const ManagerRecords: React.FC = () => {
                   children: (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <div className="space-y-2">
-
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
-                            <Select
-                              placeholder="Chọn trạng thái"
-                              style={{ width: 200 }}
-                              allowClear
-                              onChange={setStatusFilter}
-                              options={[
-                                { label: 'Tất cả', value: null },
-                                { label: 'Chờ duyệt', value: 0 },
-                                { label: 'Đã duyệt', value: 1 },
-                                { label: 'Đã thu âm', value: 2 },
-                                { label: 'Bị từ chối', value: 3 },
-                              ]}
-                            />
-                          </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
+                          <Select
+                            placeholder="Chọn trạng thái"
+                            style={{ width: 200 }}
+                            allowClear
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            options={[
+                              { label: 'Tất cả', value: null },
+                              { label: 'Chờ duyệt', value: 0 },
+                              { label: 'Đã duyệt', value: 1 },
+                              { label: 'Đã thu âm', value: 2 },
+                              { label: 'Bị từ chối', value: 3 },
+                            ]}
+                          />
                         </div>
 
-                        <Space>
-                          {userRole === 'Admin' && (
-                            <>
-                              <Button
-                                icon={<DownloadOutlined />}
-                                onClick={handleDownloadWithAudio}
-                                loading={downloading}
-                                className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
-                              >
-                                Tải câu đã thu
-                              </Button>
-                              <Button
-                                icon={<DownloadOutlined />}
-                                onClick={handleDownloadApproved}
-                                loading={downloading}
-                                className="bg-green-50 hover:bg-green-100 border-green-300 text-green-600"
-                              >
-                                Tải câu đã duyệt
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleCreateSentence}
-                          >
-                            Tạo câu mới
-                          </Button>
-                        </Space>
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={handleCreateSentence}
+                        >
+                          Tạo câu mới
+                        </Button>
                       </div>
+
                       {loadingSentences ? (
                         <div className="flex justify-center py-12">
                           <Spin size="large" />
