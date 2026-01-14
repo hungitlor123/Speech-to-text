@@ -6,8 +6,8 @@ import {
   Mic,
   LogOut,
   Menu,
-  type LucideIcon,
   Trophy,
+  type LucideIcon,
 } from 'lucide-react';
 
 type MenuItem = {
@@ -21,13 +21,21 @@ const SidebarManager = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  // SidebarManager luôn phục vụ role Manager nên dùng menu cố định
-  const menuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
-    { icon: Mic, label: 'Bản Thu', path: '/manager/recording' },
-    { icon: Users, label: 'QL Tình nguyện viên', path: '/manager/users' },
-    { icon: Trophy, label: 'Top Đóng Góp', path: '/manager/contributions' },
-  ];
+  const userRole = localStorage.getItem('userRole') || 'Admin';
+
+  const menuItems: MenuItem[] = userRole === 'Manager'
+    ? [
+      { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
+      { icon: Mic, label: 'Bản Thu', path: '/manager/recording' },
+      { icon: Users, label: 'Người dùng', path: '/manager/users' },
+      { icon: Trophy, label: 'Top Đóng Góp', path: '/manager/contributions' },
+    ]
+    : [
+      { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },
+      { icon: Mic, label: 'Bản Thu', path: '/admin/recording' },
+      { icon: Users, label: 'QL Tình nguyện viên', path: '/admin/users' },
+      { icon: Trophy, label: 'Top Đóng Góp', path: '/admin/contributions' },
+    ];
 
   const handleLogout = () => {
     localStorage.clear();

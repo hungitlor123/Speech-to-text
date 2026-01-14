@@ -19,8 +19,16 @@ export interface Recording {
 
 export const getSentences = async (): Promise<Sentence[]> => {
   try {
-    const response = await axiosInstance.get<Sentence[]>("sentences");
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await axiosInstance.get("sentences");
+    const data = response.data;
+    // Handle both direct array and nested data structure
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    console.warn('Unexpected data format from getSentences:', data);
+    return [];
   } catch (error: any) {
     console.error('Error fetching sentences:', error);
     return [];
@@ -29,8 +37,16 @@ export const getSentences = async (): Promise<Sentence[]> => {
 
 export const getRecordings = async (): Promise<Recording[]> => {
   try {
-    const response = await axiosInstance.get<Recording[]>("recordings");
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await axiosInstance.get("recordings");
+    const data = response.data;
+    // Handle both direct array and nested data structure
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    console.warn('Unexpected data format from getRecordings:', data);
+    return [];
   } catch (error: any) {
     console.error('Error fetching recordings:', error);
     return [];

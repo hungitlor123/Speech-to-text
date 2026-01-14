@@ -229,9 +229,19 @@ const ManagerRecords: React.FC = () => {
       setIsModalVisible(false);
       form.resetFields();
       fetchSentences();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save sentence:', error);
-      message.error('Lưu câu thất bại');
+      // Check if error is due to duplicate sentence
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.message || 
+        '';
+      
+      if (errorMessage.includes('Duplicate sentences exist') || errorMessage.includes('duplicate')) {
+        message.error('Câu này đã tồn tại');
+      } else {
+        message.error('Lưu câu thất bại');
+      }
     }
   };
 
@@ -540,14 +550,32 @@ const ManagerRecords: React.FC = () => {
                             ]}
                           />
                         </div>
-                        <Button
-                          icon={<DownloadOutlined />}
-                          onClick={handleDownloadAll}
-                          loading={downloading}
-                          className="bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-600"
-                        >
-                          Tải toàn bộ Audio
-                        </Button>
+                        <Space size="small">
+                          <Button
+                            icon={<DownloadOutlined />}
+                            onClick={handleDownloadWithAudio}
+                            loading={downloading}
+                            className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
+                          >
+                            Tải câu đã thu
+                          </Button>
+                          <Button
+                            icon={<DownloadOutlined />}
+                            onClick={handleDownloadApproved}
+                            loading={downloading}
+                            className="bg-green-50 hover:bg-green-100 border-green-300 text-green-600"
+                          >
+                            Tải câu đã duyệt
+                          </Button>
+                          <Button
+                            icon={<DownloadOutlined />}
+                            onClick={handleDownloadAll}
+                            loading={downloading}
+                            className="bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-600"
+                          >
+                            Tải toàn bộ Audio
+                          </Button>
+                        </Space>
                       </div>
                     
                       {loadingRecordings ? (
@@ -601,22 +629,7 @@ const ManagerRecords: React.FC = () => {
                         </div>
                         
                         <Space>
-                          <Button
-                            icon={<DownloadOutlined />}
-                            onClick={handleDownloadWithAudio}
-                            loading={downloading}
-                            className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
-                          >
-                            Tải câu đã thu
-                          </Button>
-                          <Button
-                            icon={<DownloadOutlined />}
-                            onClick={handleDownloadApproved}
-                            loading={downloading}
-                            className="bg-green-50 hover:bg-green-100 border-green-300 text-green-600"
-                          >
-                            Tải câu đã duyệt
-                          </Button>
+                          
                           <Button
                             type="primary"
                             icon={<PlusOutlined />}
