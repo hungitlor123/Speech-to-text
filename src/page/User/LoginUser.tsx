@@ -1,51 +1,61 @@
 import React, { useState } from 'react';
 import { Button, Input, Typography, message } from 'antd';
-import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
+import { UserOutlined, LoginOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { loginAdminWithPassword } from '@/services/features/autSlice';
+import { loginAdmin, fetchUserData } from '@/services/features/autSlice';
 
 const { Title, Text } = Typography;
 
-const LoginPage: React.FC = () => {
+const LoginUser: React.FC = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      message.warning('Vui lòng nhập đầy đủ thông tin đăng nhập');
+    if (!email.trim()) {
+      message.warning('Vui lòng nhập email');
       return;
     }
 
     setLoading(true);
     
     try {
-      const response = await loginAdminWithPassword(username, password);
+      const loginResponse = await loginAdmin(email);
       
-      if (response.token) {
-        message.success(response.message || 'Đăng nhập thành công!');
+      if (loginResponse.token) {
+        // Store token
+        localStorage.setItem('userToken', loginResponse.token);
+        localStorage.setItem('userEmail', email);
         
-        // Store token and user info
-        localStorage.setItem('adminToken', response.token);
-        localStorage.setItem('userUsername', username);
-        localStorage.setItem('userRole', response.role || 'User');
-        
-        // Navigate based on role
-        setTimeout(() => {
-          if (response.role === 'Manager') {
-            navigate('/manager/dashboard');
-          } else {
-            navigate('/admin/dashboard');
+        // Decode JWT to get userId
+        const tokenParts = loginResponse.token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          const userId = payload.userId || payload.userid;
+          
+          if (userId) {
+            localStorage.setItem('userID', userId);
+            
+            // Fetch user data
+            const userData = await fetchUserData(userId);
+            localStorage.setItem('userName', userData.Name || email);
+            localStorage.setItem('userRole', userData.Role || 'User');
           }
+        }
+        
+        message.success('Đăng nhập thành công!');
+        
+        // Navigate to recording page
+        setTimeout(() => {
+          navigate('/user/profile');
         }, 500);
       } else {
-        message.error(response.message || 'Đăng nhập thất bại');
+        message.error(loginResponse.message || 'Đăng nhập thất bại');
         setLoading(false);
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      message.error(error.message || 'Tên đăng nhập hoặc mật khẩu không chính xác');
+      message.error(error.message || 'Email không tồn tại hoặc không hợp lệ');
       setLoading(false);
     }
   };
@@ -76,7 +86,7 @@ const LoginPage: React.FC = () => {
         {/* Login Form Card */}
         <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
           <div className="bg-white rounded-[1rem] p-6 md:p-8 space-y-6">
-            {/* Username Input */}
+            {/* Email Input */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
@@ -88,31 +98,11 @@ const LoginPage: React.FC = () => {
               </div>
               <Input
                 size="large"
-                placeholder="Nhập email"
+                type="email"
+                placeholder="Nhập Email"
                 prefix={<UserOutlined className="text-gray-400" />}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="rounded-xl border-gray-300 hover:border-blue-400 focus:border-blue-500 transition-all"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <LockOutlined className="text-blue-600" />
-                </div>
-                <span className="text-xs font-semibold tracking-[0.18em] text-blue-500 uppercase">
-                  Mật khẩu
-                </span>
-              </div>
-              <Input.Password
-                size="large"
-                placeholder="Nhập mật khẩu"
-                prefix={<LockOutlined className="text-gray-400" />}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 onKeyPress={handleKeyPress}
                 className="rounded-xl border-gray-300 hover:border-blue-400 focus:border-blue-500 transition-all"
               />
@@ -138,4 +128,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default LoginUser;

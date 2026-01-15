@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Typography, Table, Spin, Empty, Card, Row, Col, Avatar } from 'antd';
-import { TrophyOutlined, UserOutlined, FileTextOutlined, CrownOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import Sidebar from '@/components/Sidebar';
+import { TrophyOutlined, UserOutlined, FileTextOutlined, CrownOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import SidebarUser from '@/components/SidebarUser';
 import { fetchTopContributors, TopContributor } from '@/services/features/userSlice';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/services/store/store';
 
 const { Title, Text } = Typography;
 
-const ManageContribution: React.FC = () => {
+const UserContribution: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [topContributors, setTopContributors] = useState<TopContributor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,45 +31,44 @@ const ManageContribution: React.FC = () => {
 
   const columns = [
     {
-      title: 'Hạng',
-      key: 'rank',
-      width: 120,
-      render: (_: unknown, __: TopContributor, index: number) => {
-        return (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
-                  index === 0
-                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
-                    : index === 1
-                    ? 'bg-gradient-to-r from-gray-400 to-gray-500'
-                    : index === 2
-                    ? 'bg-gradient-to-r from-orange-400 to-orange-500'
-                    : 'bg-blue-400'
-                }`}
-              >
-                {index + 1}
-              </span>
-              <span className="text-xs font-semibold text-amber-700">
-                {index === 0 ? 'Vàng' : index === 1 ? 'Bạc' : index === 2 ? 'Đồng' : `#${index + 1}`}
-              </span>
-            </div>
-          </div>
-        );
-      },
-    },
+          title: 'Hạng',
+          key: 'rank',
+          width: 120,
+          render: (_: unknown, __: TopContributor, index: number) => {
+            return (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
+                      index === 0
+                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
+                        : index === 1
+                        ? 'bg-gradient-to-r from-gray-400 to-gray-500'
+                        : index === 2
+                        ? 'bg-gradient-to-r from-orange-400 to-orange-500'
+                        : 'bg-blue-400'
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="text-xs font-semibold text-amber-700">
+                    {index === 0 ? 'Vàng' : index === 1 ? 'Bạc' : index === 2 ? 'Đồng' : `#${index + 1}`}
+                  </span>
+                </div>
+              </div>
+            );
+          },
+        },
     {
-      title: 'Email ',
+      title: 'Người dùng',
       dataIndex: 'userEmail',
       key: 'userEmail',
       width: 250,
-      render: (userEmail: string, record: TopContributor) => (
+      render: (name: string, record: TopContributor) => (
         <div className="flex items-center gap-3">
           
-          
           <div>
-            <div className="font-semibold text-base text-gray-900 break-all">{userEmail || 'Ẩn danh'}</div>
+            <div className="font-semibold text-base text-gray-900">{name || 'Ẩn danh'}</div>
             <div className="text-sm text-gray-500">
               {record.createdAt ? new Date(record.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
             </div>
@@ -120,7 +119,7 @@ const ManageContribution: React.FC = () => {
       title: 'Tổng đóng góp',
       key: 'total',
       width: 200,
-      sorter: (a: TopContributor, b: TopContributor) => 
+      sorter: (a: TopContributor, b: TopContributor) =>
         (a.totalSentences) - (b.totalSentences),
       render: (_: unknown, record: TopContributor) => {
         const total = (record?.totalSentences || 0);
@@ -135,14 +134,10 @@ const ManageContribution: React.FC = () => {
   ];
 
   const topThree = Array.isArray(topContributors) ? topContributors.slice(0, 3) : [];
-  const totalSentences = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + c.totalSentences, 0) : 0;
-  const approvedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status1Count || 0), 0) : 0;
-  const rejectedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status3Count || 0), 0) : 0;
-  const pendingCount = Math.max(totalSentences - approvedCount - rejectedCount, 0);
 
   return (
     <div className="flex">
-      <Sidebar />
+      <SidebarUser />
       <div className="flex-1 min-h-screen bg-gray-50 py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -157,81 +152,10 @@ const ManageContribution: React.FC = () => {
                 Top Người Đóng Góp
               </Title>
             </div>
-            
+
           </div>
 
-          {/* Statistics Grid (match Dashboard) */}
-          <Row gutter={[12, 12]} className="mb-2">
-            <Col xs={12} sm={12} md={4} lg={4}>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Text className="text-xs text-gray-500 font-medium block mb-1">Người đóng góp</Text>
-                    <Text className="text-2xl font-bold text-blue-600">{topContributors.length}</Text>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <UserOutlined className="text-xl text-blue-600" />
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={12} sm={12} md={4} lg={4}>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Text className="text-xs text-gray-500 font-medium block mb-1">Câu đóng góp</Text>
-                    <Text className="text-2xl font-bold text-green-600">{totalSentences}</Text>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                    <FileTextOutlined className="text-xl text-green-600" />
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={12} sm={12} md={4} lg={4}>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Text className="text-xs text-gray-500 font-medium block mb-1">Đã duyệt</Text>
-                    <Text className="text-2xl font-bold text-purple-600">{approvedCount}</Text>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <CheckCircleOutlined className="text-xl text-purple-600" />
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={12} sm={12} md={4} lg={4}>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Text className="text-xs text-gray-500 font-medium block mb-1">Chờ duyệt</Text>
-                    <Text className="text-2xl font-bold text-amber-600">{pendingCount}</Text>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
-                    <ClockCircleOutlined className="text-xl text-amber-600" />
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={12} sm={12} md={4} lg={4}>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-red-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Text className="text-xs text-gray-500 font-medium block mb-1">Bị từ chối</Text>
-                    <Text className="text-2xl font-bold text-red-600">{rejectedCount}</Text>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                    <CloseCircleOutlined className="text-xl text-red-600" />
-                  </div>
-                </div>
-              </div>
-            </Col>
-          </Row>
+          
 
           {/* Top 3 Podium */}
           {!loading && Array.isArray(topThree) && topThree.length >= 3 && (
@@ -240,23 +164,23 @@ const ManageContribution: React.FC = () => {
               <Col xs={24} md={8}>
                 <Card
                   className="text-center shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ 
+                  style={{
                     borderTop: '4px solid #C0C0C0',
                     background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)'
                   }}
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <TrophyOutlined style={{ fontSize: '28px', color: '#C0C0C0' }} />
-                    <Avatar 
-                      size={56} 
+                    <Avatar
+                      size={56}
                       icon={<UserOutlined />}
-                      style={{ 
+                      style={{
                         backgroundColor: '#1890ff',
                         fontSize: '22px'
                       }}
                     />
                     <div className="text-center">
-                      <Text strong style={{ fontSize: '14px' }} className="break-all px-2">{topThree[1]?.userEmail || '-'}</Text>
+                      <Text strong style={{ fontSize: '14px' }}>{topThree[1]?.userEmail || '-'}</Text>
                       <div className="text-lg font-bold text-gray-700 mt-1">
                         {((topThree[1]?.totalSentences || 0)).toLocaleString()}
                       </div>
@@ -270,7 +194,7 @@ const ManageContribution: React.FC = () => {
               <Col xs={24} md={8}>
                 <Card
                   className="text-center shadow-xl hover:shadow-2xl transition-shadow"
-                  style={{ 
+                  style={{
                     borderTop: '4px solid #FFD700',
                     background: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)',
                     transform: 'scale(1.05)'
@@ -278,17 +202,17 @@ const ManageContribution: React.FC = () => {
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <CrownOutlined style={{ fontSize: '34px', color: '#FFD700' }} />
-                    <Avatar 
-                      size={68} 
+                    <Avatar
+                      size={68}
                       icon={<UserOutlined />}
-                      style={{ 
+                      style={{
                         backgroundColor: '#1890ff',
                         fontSize: '26px',
                         border: '2px solid #FFD700'
                       }}
                     />
                     <div className="text-center">
-                      <Text strong style={{ fontSize: '16px', color: '#FFD700' }} className="break-all px-2">{topThree[0]?.userEmail || '-'}</Text>
+                      <Text strong style={{ fontSize: '16px', color: '#FFD700' }}>{topThree[0]?.userEmail || '-'}</Text>
                       <div className="text-xl font-bold text-yellow-600 mt-1">
                         {((topThree[0]?.totalSentences || 0)).toLocaleString()}
                       </div>
@@ -302,23 +226,16 @@ const ManageContribution: React.FC = () => {
               <Col xs={24} md={8}>
                 <Card
                   className="text-center shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ 
+                  style={{
                     borderTop: '4px solid #CD7F32',
                     background: 'linear-gradient(135deg, #fef3e8 0%, #ffffff 100%)'
                   }}
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <TrophyOutlined style={{ fontSize: '28px', color: '#CD7F32' }} />
-                    <Avatar 
-                      size={56} 
-                      icon={<UserOutlined />}
-                      style={{ 
-                        backgroundColor: '#1890ff',
-                        fontSize: '22px'
-                      }}
-                    />
+                    
                     <div className="text-center">
-                      <Text strong style={{ fontSize: '14px' }} className="break-all px-2">{topThree[2]?.userEmail || '-'}</Text>
+                      <Text strong style={{ fontSize: '14px' }}>{topThree[2]?.userEmail || '-'}</Text>
                       <div className="text-lg font-bold text-orange-700 mt-1">
                         {((topThree[2]?.totalSentences || 0)).toLocaleString()}
                       </div>
@@ -337,7 +254,7 @@ const ManageContribution: React.FC = () => {
                 <TrophyOutlined className="mr-2" />
                 Bảng xếp hạng
               </Title>
-              
+
             </div>
 
             {loading ? (
@@ -349,8 +266,8 @@ const ManageContribution: React.FC = () => {
                 columns={columns}
                 dataSource={topContributors}
                 rowKey={(record) => record.userId || record.userEmail}
-                pagination={{ 
-                  pageSize: 20, 
+                pagination={{
+                  pageSize: 20,
                   responsive: true,
                   showTotal: (total) => `Tổng ${total} người dùng`
                 }}
@@ -372,4 +289,4 @@ const ManageContribution: React.FC = () => {
   );
 };
 
-export default ManageContribution;
+export default UserContribution;

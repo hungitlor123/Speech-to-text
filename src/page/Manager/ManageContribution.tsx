@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Card, Row, Col, Statistic, Avatar } from 'antd';
-import { TrophyOutlined, UserOutlined, AudioOutlined, FileTextOutlined, CrownOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Card, Row, Col, Avatar } from 'antd';
+import { TrophyOutlined, UserOutlined, FileTextOutlined, CrownOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import SidebarManager from '@/components/SidebarManager';
 import { fetchTopContributors, TopContributor } from '@/services/features/userSlice';
 import { useDispatch } from 'react-redux';
@@ -61,19 +61,12 @@ const ManageContribution: React.FC = () => {
         },
     {
       title: 'Người dùng',
-      dataIndex: 'userName',
-      key: 'userName',
+      dataIndex: 'userEmail',
+      key: 'userEmail',
       width: 250,
       render: (name: string, record: TopContributor) => (
         <div className="flex items-center gap-3">
-          <Avatar
-            size={48}
-            icon={<UserOutlined />}
-            style={{
-              backgroundColor: '#1890ff',
-              fontSize: '20px'
-            }}
-          />
+          
           <div>
             <div className="font-semibold text-base text-gray-900">{name || 'Ẩn danh'}</div>
             <div className="text-sm text-gray-500">
@@ -141,8 +134,10 @@ const ManageContribution: React.FC = () => {
   ];
 
   const topThree = Array.isArray(topContributors) ? topContributors.slice(0, 3) : [];
-  const totalSentences = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + c.totalSentences, 0) : 0;
-  const totalRecordings = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + c.status1Count, 0) : 0;
+  const totalSentences = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.totalSentences || 0), 0) : 0;
+  const approvedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status1Count || 0), 0) : 0;
+  const rejectedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status3Count || 0), 0) : 0;
+  const pendingCount = Math.max(totalSentences - approvedCount - rejectedCount, 0);
 
   return (
     <div className="flex">
@@ -163,6 +158,79 @@ const ManageContribution: React.FC = () => {
             </div>
 
           </div>
+
+          {/* Statistics Grid (match Dashboard) */}
+          <Row gutter={[12, 12]} className="mb-2">
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Người đóng góp</Text>
+                    <Text className="text-2xl font-bold text-blue-600">{topContributors.length}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <UserOutlined className="text-xl text-blue-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Câu đóng góp</Text>
+                    <Text className="text-2xl font-bold text-green-600">{totalSentences}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                    <FileTextOutlined className="text-xl text-green-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Đã duyệt</Text>
+                    <Text className="text-2xl font-bold text-purple-600">{approvedCount}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <CheckCircleOutlined className="text-xl text-purple-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Chờ duyệt</Text>
+                    <Text className="text-2xl font-bold text-amber-600">{pendingCount}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <ClockCircleOutlined className="text-xl text-amber-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-red-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Bị từ chối</Text>
+                    <Text className="text-2xl font-bold text-red-600">{rejectedCount}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
+                    <CloseCircleOutlined className="text-xl text-red-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+          </Row>
 
           {/* Top 3 Podium */}
           {!loading && Array.isArray(topThree) && topThree.length >= 3 && (
@@ -187,7 +255,7 @@ const ManageContribution: React.FC = () => {
                       }}
                     />
                     <div className="text-center">
-                      <Text strong style={{ fontSize: '14px' }}>{topThree[1]?.userName || '-'}</Text>
+                      <Text strong style={{ fontSize: '14px' }}>{topThree[1]?.userEmail || '-'}</Text>
                       <div className="text-lg font-bold text-gray-700 mt-1">
                         {((topThree[1]?.totalSentences || 0)).toLocaleString()}
                       </div>
@@ -219,7 +287,7 @@ const ManageContribution: React.FC = () => {
                       }}
                     />
                     <div className="text-center">
-                      <Text strong style={{ fontSize: '16px', color: '#FFD700' }}>{topThree[0]?.userName || '-'}</Text>
+                      <Text strong style={{ fontSize: '16px', color: '#FFD700' }}>{topThree[0]?.userEmail || '-'}</Text>
                       <div className="text-xl font-bold text-yellow-600 mt-1">
                         {((topThree[0]?.totalSentences || 0)).toLocaleString()}
                       </div>
@@ -240,16 +308,9 @@ const ManageContribution: React.FC = () => {
                 >
                   <div className="flex flex-col items-center gap-1.5 py-2">
                     <TrophyOutlined style={{ fontSize: '28px', color: '#CD7F32' }} />
-                    <Avatar
-                      size={56}
-                      icon={<UserOutlined />}
-                      style={{
-                        backgroundColor: '#1890ff',
-                        fontSize: '22px'
-                      }}
-                    />
+                    
                     <div className="text-center">
-                      <Text strong style={{ fontSize: '14px' }}>{topThree[2]?.userName || '-'}</Text>
+                      <Text strong style={{ fontSize: '14px' }}>{topThree[2]?.userEmail || '-'}</Text>
                       <div className="text-lg font-bold text-orange-700 mt-1">
                         {((topThree[2]?.totalSentences || 0)).toLocaleString()}
                       </div>
@@ -260,66 +321,6 @@ const ManageContribution: React.FC = () => {
               </Col>
             </Row>
           )}
-
-          {/* Statistics Cards */}
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={8}>
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <UserOutlined className="text-blue-600" />
-                        </div>
-                        <span className="text-gray-600 font-medium">Tổng người đóng góp</span>
-                      </div>
-                    }
-                    value={topContributors.length}
-                    valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <FileTextOutlined className="text-green-600" />
-                        </div>
-                        <span className="text-gray-600 font-medium">Tổng câu đóng góp</span>
-                      </div>
-                    }
-                    value={totalSentences}
-                    valueStyle={{ color: '#16a34a', fontSize: '32px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                          <AudioOutlined className="text-purple-600" />
-                        </div>
-                        <span className="text-gray-600 font-medium">Tổng bản ghi âm</span>
-                      </div>
-                    }
-                    value={totalRecordings}
-                    valueStyle={{ color: '#9333ea', fontSize: '32px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-            </Col>
-          </Row>
 
           {/* Top Contributors Table */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -339,7 +340,7 @@ const ManageContribution: React.FC = () => {
               <Table
                 columns={columns}
                 dataSource={topContributors}
-                rowKey={(record) => record.userId || record.userName}
+                rowKey={(record) => record.userId || record.userEmail}
                 pagination={{
                   pageSize: 20,
                   responsive: true,

@@ -2,12 +2,9 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Users,
-  Mic,
   LogOut,
   Menu,
   Trophy,
-  FileText,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -18,31 +15,25 @@ type MenuItem = {
   children?: MenuItem[];
 };
 
-const Sidebar = () => {
+const SidebarUser = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const userRole = localStorage.getItem('userRole') || 'Admin';
+  const userRole = localStorage.getItem('userRole') || 'User';
 
-  const menuItems: MenuItem[] = userRole === 'Manager'
+  const menuItems: MenuItem[] = userRole === 'User'
     ? [
-      { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
-      { icon: Mic, label: 'Quản lý ghi âm', path: '/manager/recording' },
-      { icon: FileText, label: 'Quản lý câu', path: '/manager/sentences' },
-      { icon: Users, label: 'Người dùng', path: '/manager/users' },
-      { icon: Trophy, label: 'Top Đóng Góp', path: '/manager/contributions' },
+      { icon: LayoutDashboard, label: 'Quản lý', path: '/user/profile' },
+      
+      { icon: Trophy, label: 'Top Đóng Góp', path: '/user/contributions' },
     ]
     : [
-      { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },
-      { icon: Mic, label: 'Quản lý ghi âm', path: '/admin/recording' },
-      { icon: FileText, label: 'Quản lý câu', path: '/admin/sentences' },
-      { icon: Users, label: 'QL Tình nguyện viên', path: '/admin/users' },
-      { icon: Trophy, label: 'Top Đóng Góp', path: '/admin/contributions' },
+      
     ];
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/login');
+    navigate('/recording ');
   };
 
   const isActive = (path: string) => {
@@ -110,4 +101,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default SidebarUser;
