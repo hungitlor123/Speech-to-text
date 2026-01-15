@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   Trophy,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -26,13 +27,15 @@ const SidebarManager = () => {
   const menuItems: MenuItem[] = userRole === 'Manager'
     ? [
       { icon: LayoutDashboard, label: 'Tổng Quan', path: '/manager/dashboard' },
-      { icon: Mic, label: 'Bản Thu', path: '/manager/recording' },
+      { icon: Mic, label: 'Quản lý ghi âm', path: '/manager/recording' },
+      { icon: FileText, label: 'Quản lý câu', path: '/manager/sentences' },
       { icon: Users, label: 'Người dùng', path: '/manager/users' },
       { icon: Trophy, label: 'Top Đóng Góp', path: '/manager/contributions' },
     ]
     : [
       { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },
-      { icon: Mic, label: 'Bản Thu', path: '/admin/recording' },
+      { icon: Mic, label: 'Quản lý ghi âm', path: '/admin/recording' },
+      { icon: FileText, label: 'Quản lý câu', path: '/admin/sentences' },
       { icon: Users, label: 'QL Tình nguyện viên', path: '/admin/users' },
       { icon: Trophy, label: 'Top Đóng Góp', path: '/admin/contributions' },
     ];

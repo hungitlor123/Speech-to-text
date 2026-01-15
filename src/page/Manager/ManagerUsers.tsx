@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Statistic, Tag, Button, Popconfirm, message, Space, Modal } from 'antd';
-import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal } from 'antd';
+import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined } from '@ant-design/icons';
 
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '@/services/features/userSlice';
@@ -71,9 +71,9 @@ const ManagerUsers: React.FC = () => {
     },
 
     {
-      title: 'Tên',
-      dataIndex: 'Name',
-      key: 'Name',
+      title: 'Email',
+      dataIndex: 'Email',
+      key: 'Email',
       width: 200,
       render: (text: string) => <span className="font-medium text-gray-900">{text}</span>,
     },
@@ -174,8 +174,11 @@ const ManagerUsers: React.FC = () => {
     },
   ];
 
+  const totalUsers = users.length;
   const maleCount = users.filter((u) => u.Gender === 'Male').length;
   const femaleCount = users.filter((u) => u.Gender === 'Female').length;
+  const totalSentencesDone = users.reduce((sum, u) => sum + (u.TotalSentencesDone || 0), 0);
+  const totalContributedByUsers = users.reduce((sum, u) => sum + (u.TotalContributedByUser || 0), 0);
 
   return (
     <div className="flex">
@@ -194,61 +197,74 @@ const ManagerUsers: React.FC = () => {
 
           </div>
 
-          {/* Statistics Cards */}
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8} lg={8}>
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <TeamOutlined className="text-blue-600" />
-                        </div>
-                        <span className="text-gray-600 font-medium">Tổng người dùng</span>
-                      </div>
-                    }
-                    value={users.length}
-                    valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
-                  />
+          {/* Statistics Grid (match Dashboard) */}
+          <Row gutter={[12, 12]} className="mb-2">
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Tổng người dùng</Text>
+                    <Text className="text-2xl font-bold text-blue-600">{totalUsers}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <TeamOutlined className="text-xl text-blue-600" />
+                  </div>
                 </div>
               </div>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={8}>
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <ManOutlined className="text-blue-600" />
-                        </div>
-                        <span className="text-gray-600 font-medium">Nam</span>
-                      </div>
-                    }
-                    value={maleCount}
-                    valueStyle={{ color: '#2563eb', fontSize: '32px', fontWeight: 'bold' }}
-                  />
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Nam</Text>
+                    <Text className="text-2xl font-bold text-green-600">{maleCount}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                    <ManOutlined className="text-xl text-green-600" />
+                  </div>
                 </div>
               </div>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={8}>
-              <div className="bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl p-[1px] shadow-md">
-                <div className="bg-white rounded-[1rem] p-6">
-                  <Statistic
-                    title={
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center">
-                          <WomanOutlined className="text-pink-600" />
-                        </div>
-                        <span className="text-gray-600 font-medium">Nữ</span>
-                      </div>
-                    }
-                    value={femaleCount}
-                    valueStyle={{ color: '#ec4899', fontSize: '32px', fontWeight: 'bold' }}
-                  />
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Nữ</Text>
+                    <Text className="text-2xl font-bold text-pink-600">{femaleCount}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center">
+                    <WomanOutlined className="text-xl text-pink-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Câu đã làm</Text>
+                    <Text className="text-2xl font-bold text-purple-600">{totalSentencesDone}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <FileTextOutlined className="text-xl text-purple-600" />
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={12} sm={12} md={4} lg={4}>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text className="text-xs text-gray-500 font-medium block mb-1">Câu đóng góp</Text>
+                    <Text className="text-2xl font-bold text-amber-600">{totalContributedByUsers}</Text>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <TrophyOutlined className="text-xl text-amber-600" />
+                  </div>
                 </div>
               </div>
             </Col>

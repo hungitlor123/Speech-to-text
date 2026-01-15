@@ -7,10 +7,18 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element, requiredRole }) => {
-  const token = localStorage.getItem('adminToken');
+  const adminToken = localStorage.getItem('adminToken');
+  const userToken = localStorage.getItem('userToken');
   const userRole = localStorage.getItem('userRole');
 
-  if (!token) {
+  // Check if user is authenticated (either admin or user token)
+  const isAuthenticated = adminToken || userToken;
+
+  if (!isAuthenticated) {
+    // Redirect to appropriate login page
+    if (requiredRole === 'User') {
+      return <Navigate to="/login-user" replace />;
+    }
     return <Navigate to="/login" replace />;
   }
 

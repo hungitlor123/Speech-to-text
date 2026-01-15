@@ -21,7 +21,7 @@ export interface Recording {
 
 export interface User {
   PersonID: string;
-  Name: string;
+  Email: string;
   Gender: string;
   Role?: string;
   CreatedAt: string;
@@ -31,16 +31,30 @@ export interface User {
   }>;
   TotalRecordingDuration?: number;
   TotalSentencesDone?: number;
+  TotalContributedByUser?: number;
+  CreatedSentences?: Array<{
+    SentenceID: string;
+    Content: string;
+    Status: number;
+    CreatedAt: string;
+  }>;
 }
 
 export interface TopContributor {
-  userName: string;
+  userEmail: string;
   userId: string | null;
   totalSentences: number;
   status1Count: number;
   status2Count: number;
   status3Count: number;
   createdAt: string | null;
+  RecordedSentences?: Array<{
+    SentenceID: string;
+    Content: string;
+    RecordingCount: number;
+    ApprovedCount: number;
+  }>;
+  RecordingTotalCount?: number;
 }
 
 export interface AvailableSentence {

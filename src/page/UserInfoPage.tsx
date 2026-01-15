@@ -4,6 +4,7 @@ import { useAppSelector } from '@/services/store/store';
 import UserInfoModal from '@/components/UserInfoModal';
 import { AudioOutlined } from '@ant-design/icons';
 import { clearPersistedUserData } from '@/lib/storageUtils';
+import { Button } from 'antd';
 
 const UserInfoPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -31,7 +32,16 @@ const UserInfoPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Login Button - Top Right */}
-
+    <div className="fixed top-6 right-6 z-50">
+        <Button
+          type="primary"
+          size="large"
+          onClick={() => navigate('/login-user')}
+          className="bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-medium transition-all"
+        >
+          Đăng nhập
+        </Button>
+      </div>
 
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
