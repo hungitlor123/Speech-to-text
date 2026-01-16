@@ -1,3 +1,4 @@
+import { Layout } from 'antd';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -5,99 +6,75 @@ import {
   LogOut,
   Menu,
   Trophy,
-  type LucideIcon,
 } from 'lucide-react';
 
-type MenuItem = {
-  icon: LucideIcon;
-  label: string;
-  path: string;
-  children?: MenuItem[];
-};
+const { Sider } = Layout;
 
 const SidebarUser = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const userRole = localStorage.getItem('userRole') || 'User';
 
-  const menuItems: MenuItem[] = userRole === 'User'
-    ? [
-      { icon: LayoutDashboard, label: 'Quản lý', path: '/user/profile' },
-      
-      { icon: Trophy, label: 'Top Đóng Góp', path: '/user/contributions' },
-    ]
-    : [
-      
-    ];
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/recording ');
-  };
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const menuItems = [
+    { icon: LayoutDashboard, label: 'Quản lý', path: '/user/profile' },
+    { icon: Trophy, label: 'Top Đóng Góp', path: '/user/contributions' },
+  ];
 
   return (
-    <aside
-      className={`h-screen sticky top-0 shrink-0 bg-white shadow-lg transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'
-        }`}
+    <Sider
+      collapsible
+      collapsed={collapsed}
+      trigger={null}
+      width={256}
+      collapsedWidth={80}
+      style={{ background: '#fff' }}
     >
       {/* Header */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-blue-200">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 hover:text-blue-900 transition-all duration-200"
-            aria-label="Toggle sidebar"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          {!collapsed && (
-            <span className="text-lg font-bold tracking-wide text-blue-900">Speech2Text</span>
-          )}
-        </div>
+      <div className="h-16 px-4 flex items-center border-b border-blue-200">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        {!collapsed && (
+          <span className="ml-3 font-bold text-blue-900">Speech2Text</span>
+        )}
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="py-6 px-2 space-y-2">
+      {/* Menu */}
+      <nav className="py-4">
         {menuItems.map((item) => {
-          const active = isActive(item.path);
-
+          const active = location.pathname === item.path;
           return (
-            <div key={item.path} className="relative px-2">
+            <div key={item.path} className="px-3 mb-2">
               <button
-                onClick={() => {
-                  navigate(item.path);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${active
-                    ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100'
-                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-900'
-                  }`}
+                onClick={() => navigate(item.path)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${
+                  active
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-blue-600 hover:bg-blue-50'
+                }`}
               >
-                <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-blue-400'}`} />
-                {!collapsed && (
-                  <span className="text-sm font-semibold">{item.label}</span>
-                )}
+                <item.icon className="w-5 h-5" />
+                {!collapsed && item.label}
               </button>
             </div>
           );
         })}
       </nav>
 
-      {/* Logout Button */}
-      <div className="absolute bottom-0 left-0 right-0 border-t border-blue-200 p-4 bg-white">
+      {/* Logout */}
+      <div className="absolute bottom-0 w-full p-4 border-t">
         <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+          onClick={() => navigate('/recording')}
+          className="w-full flex items-center gap-3 text-red-600"
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="text-sm font-semibold">Đăng xuất</span>}
+          <LogOut className="w-5 h-5" />
+          {!collapsed && 'Đăng xuất'}
         </button>
       </div>
-    </aside>
+    </Sider>
   );
 };
 
