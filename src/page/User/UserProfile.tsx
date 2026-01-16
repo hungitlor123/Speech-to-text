@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Layout, Card, Descriptions, Statistic, Row, Col, Table, Tag, Typography, Spin, message } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckCircleOutlined, FileTextOutlined } from '@ant-design/icons';
+import {  ClockCircleOutlined, CheckCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import axiosInstance from '@/services/constant/axiosInstance';
 import SidebarUser from '@/components/SidebarUser';
@@ -79,17 +79,7 @@ const UserProfile: React.FC = () => {
       dataIndex: 'Content',
       key: 'Content',
     },
-    {
-      title: 'ID Câu',
-      dataIndex: 'SentenceID',
-      key: 'SentenceID',
-      width: 200,
-      render: (text: string) => (
-        <Typography.Text copyable ellipsis style={{ width: 180 }}>
-          {text}
-        </Typography.Text>
-      ),
-    },
+    
   ];
 
   const createdSentencesColumns = [
@@ -167,30 +157,38 @@ const UserProfile: React.FC = () => {
       <SidebarUser />
       <Layout style={{ background: '#f5f5f5' }}>
         <Content style={{ padding: '24px' }}>
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
-              <Title level={2} className="!text-white !mb-2">
+          <div className="max-w-7xl mx-auto" style={{ marginTop: 0 }}>
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg mb-4">
+              <Title level={2} className="!text-white !mb-1">
                 Thông tin cá nhân
               </Title>
-              <p className="text-blue-100">
+              <p className="text-blue-100 mb-0">
                 Quản lý thông tin và hoạt động đóng góp của bạn
               </p>
             </div>
 
-            <Card title={<span><UserOutlined /> Thông tin tài khoản</span>} className="shadow-md">
-              <Descriptions bordered column={{ xs: 1, sm: 2, md: 2 }}>
+            <Card
+              title={
+                <div className="flex items-center gap-3">
+                  
+                  <div>
+                    <span className="font-semibold">Thông tin tài khoản</span>
+                    
+                  </div>
+                </div>
+              }
+              className="shadow-md mb-4 rounded-2xl border border-gray-100"
+            >
+              <Descriptions column={{ xs: 1, sm: 2, md: 2 }} size="middle">
                 <Descriptions.Item label="Email">{userData.Email}</Descriptions.Item>
                 <Descriptions.Item label="Giới tính">{userData.Gender === 'Male' ? 'Nam' : 'Nữ'}</Descriptions.Item>
-                <Descriptions.Item label="Vai trò">
-                  <Tag color="blue">{userData.Role}</Tag>
-                </Descriptions.Item>
                 <Descriptions.Item label="Ngày tạo">
                   {dayjs(userData.CreatedAt).format('DD/MM/YYYY HH:mm')}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Row gutter={[16, 16]}>
+            <Row gutter={[16, 16]} className="mb-4">
               <Col xs={24} sm={8}>
                 <Card className="shadow-md hover:shadow-lg transition-shadow">
                   <Statistic
@@ -230,13 +228,19 @@ const UserProfile: React.FC = () => {
                   Danh sách câu đã thu ({userData.SentencesDone?.length || 0})
                 </span>
               }
-              className="shadow-md"
+              className="shadow-md mb-4"
             >
               <Table
                 columns={sentencesDoneColumns}
                 dataSource={userData.SentencesDone || []}
                 rowKey="SentenceID"
-                pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} câu`, showSizeChanger: true }}
+                pagination={{
+                  defaultPageSize: 10,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 30, 50],
+                  showTotal: (total) => `Tổng ${total} câu`,
+                }}
+                scroll={{ x: 800 }}
                 locale={{ emptyText: 'Chưa có câu nào được thu' }}
               />
             </Card>
@@ -254,7 +258,13 @@ const UserProfile: React.FC = () => {
                 columns={createdSentencesColumns}
                 dataSource={userData.CreatedSentences || []}
                 rowKey="SentenceID"
-                pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} câu`, showSizeChanger: true }}
+                pagination={{
+                  defaultPageSize: 10,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 30, 50],
+                  showTotal: (total) => `Tổng ${total} câu`,
+                }}
+                scroll={{ x: 800 }}
                 locale={{ emptyText: 'Chưa có câu nào được tạo' }}
               />
             </Card>
