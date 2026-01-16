@@ -27,10 +27,10 @@ export const getSentences = async (): Promise<Sentence[]> => {
     } else if (data?.data && Array.isArray(data.data)) {
       return data.data;
     }
-    console.warn('Unexpected data format from getSentences:', data);
+    console.warn("Unexpected data format from getSentences:", data);
     return [];
   } catch (error: any) {
-    console.error('Error fetching sentences:', error);
+    console.error("Error fetching sentences:", error);
     return [];
   }
 };
@@ -45,20 +45,39 @@ export const getRecordings = async (): Promise<Recording[]> => {
     } else if (data?.data && Array.isArray(data.data)) {
       return data.data;
     }
-    console.warn('Unexpected data format from getRecordings:', data);
+    console.warn("Unexpected data format from getRecordings:", data);
     return [];
   } catch (error: any) {
-    console.error('Error fetching recordings:', error);
+    console.error("Error fetching recordings:", error);
     return [];
   }
 };
 
-export const getRecordingsByStatus = async (status: number): Promise<Recording[]> => {
+export const getRecordingsByPersonId = async (
+  personId: string
+): Promise<Recording[]> => {
   try {
-    const response = await axiosInstance.get<{ isApproved: number; count: number; data: Recording[] }>(`recordings/status/${status}`);
+    const allRecordings = await getRecordings();
+    // Filter recordings by PersonID
+    return allRecordings.filter((recording) => recording.PersonID === personId);
+  } catch (error: any) {
+    console.error("Error fetching recordings by personId:", error);
+    return [];
+  }
+};
+
+export const getRecordingsByStatus = async (
+  status: number
+): Promise<Recording[]> => {
+  try {
+    const response = await axiosInstance.get<{
+      isApproved: number;
+      count: number;
+      data: Recording[];
+    }>(`recordings/status/${status}`);
     return Array.isArray(response.data.data) ? response.data.data : [];
   } catch (error: any) {
-    console.error('Error fetching recordings by status:', error);
+    console.error("Error fetching recordings by status:", error);
     return [];
   }
 };
@@ -84,15 +103,19 @@ export const uploadRecording = async (
 ): Promise<UploadRecordingResponse> => {
   try {
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.webm');
-    formData.append('personId', personId);
-    formData.append('sentenceId', sentenceId);
+    formData.append("audio", audioBlob, "recording.webm");
+    formData.append("personId", personId);
+    formData.append("sentenceId", sentenceId);
 
-    const response = await axiosInstance.post<UploadRecordingResponse>("recordings", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await axiosInstance.post<UploadRecordingResponse>(
+      "recordings",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Upload failed" };
@@ -102,16 +125,24 @@ export const uploadRecording = async (
 // CRUD operations for Sentences
 export const createSentence = async (content: string): Promise<Sentence> => {
   try {
-    const response = await axiosInstance.post<Sentence>("sentences", { content });
+    const response = await axiosInstance.post<Sentence>("sentences", {
+      content,
+    });
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Create sentence failed" };
   }
 };
 
-export const updateSentence = async (sentenceId: string, content: string): Promise<Sentence> => {
+export const updateSentence = async (
+  sentenceId: string,
+  content: string
+): Promise<Sentence> => {
   try {
-    const response = await axiosInstance.put<Sentence>(`sentences/${sentenceId}`, { content });
+    const response = await axiosInstance.put<Sentence>(
+      `sentences/${sentenceId}`,
+      { content }
+    );
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Update sentence failed" };
@@ -127,9 +158,13 @@ export const deleteSentence = async (sentenceId: string): Promise<void> => {
 };
 
 // Approve/Reject Sentence
-export const approveSentence = async (sentenceId: string): Promise<Sentence> => {
+export const approveSentence = async (
+  sentenceId: string
+): Promise<Sentence> => {
   try {
-    const response = await axiosInstance.patch<Sentence>(`sentences/${sentenceId}/approve`);
+    const response = await axiosInstance.patch<Sentence>(
+      `sentences/${sentenceId}/approve`
+    );
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Approve sentence failed" };
@@ -138,7 +173,9 @@ export const approveSentence = async (sentenceId: string): Promise<Sentence> => 
 
 export const rejectSentence = async (sentenceId: string): Promise<Sentence> => {
   try {
-    const response = await axiosInstance.patch<Sentence>(`sentences/${sentenceId}/reject`);
+    const response = await axiosInstance.patch<Sentence>(
+      `sentences/${sentenceId}/reject`
+    );
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Reject sentence failed" };
@@ -146,18 +183,26 @@ export const rejectSentence = async (sentenceId: string): Promise<Sentence> => {
 };
 
 // Approve/Reject Recording
-export const approveRecording = async (recordingId: string): Promise<Recording> => {
+export const approveRecording = async (
+  recordingId: string
+): Promise<Recording> => {
   try {
-    const response = await axiosInstance.patch<Recording>(`recordings/${recordingId}/approve`);
+    const response = await axiosInstance.patch<Recording>(
+      `recordings/${recordingId}/approve`
+    );
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Approve recording failed" };
   }
 };
 
-export const rejectRecording = async (recordingId: string): Promise<Recording> => {
+export const rejectRecording = async (
+  recordingId: string
+): Promise<Recording> => {
   try {
-    const response = await axiosInstance.patch<Recording>(`recordings/${recordingId}/reject`);
+    const response = await axiosInstance.patch<Recording>(
+      `recordings/${recordingId}/reject`
+    );
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: "Reject recording failed" };
@@ -166,7 +211,7 @@ export const rejectRecording = async (recordingId: string): Promise<Recording> =
 
 // Create user sentence
 export interface CreateUserSentenceRequest {
-  name: string;
+  email: string;
   content: string;
 }
 
@@ -196,7 +241,7 @@ export const createUserSentence = async (
 };
 // Download sentences with audio
 export interface DownloadSentencesParams {
-  mode?: 'with-audio' | 'without-audio' | 'all' | 'approved';
+  mode?: "with-audio" | "without-audio" | "all" | "approved";
   status?: number;
   limit?: number;
 }
@@ -207,11 +252,11 @@ export const downloadSentences = async (
   try {
     const response = await axiosInstance.get<Blob>("sentences/download", {
       params: {
-        mode: params?.mode || 'with-audio',
+        mode: params?.mode || "with-audio",
         status: params?.status,
         limit: params?.limit,
       },
-      responseType: 'blob',
+      responseType: "blob",
     });
     return response.data;
   } catch (error: any) {
@@ -249,15 +294,18 @@ export const getTopRecorders = async (
   params?: TopRecordersParams
 ): Promise<TopRecorder[]> => {
   try {
-    const response = await axiosInstance.get<TopRecordersResponse>("users/top-recorders", {
-      params: {
-        status: params?.status,
-        limit: params?.limit || 6,
-      },
-    });
+    const response = await axiosInstance.get<TopRecordersResponse>(
+      "users/top-recorders",
+      {
+        params: {
+          status: params?.status,
+          limit: params?.limit || 6,
+        },
+      }
+    );
     return response.data.data || [];
   } catch (error: any) {
-    console.error('Error fetching top recorders:', error);
+    console.error("Error fetching top recorders:", error);
     return [];
   }
 };

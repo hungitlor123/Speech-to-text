@@ -25,15 +25,16 @@ const { Title, Text } = Typography;
 const RecordingPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const userState = useAppSelector((state) => state.user);
   const {
     userInfo,
-    recordings,
-    currentRecordingIndex,
-    currentSentence,
-    currentSentenceId,
-    availableSentences,
-    loadingSentences
-  } = useAppSelector((state) => state.user);
+    recordings = [],
+    currentRecordingIndex = 0,
+    currentSentence = "",
+    currentSentenceId = null,
+    availableSentences = [],
+    loadingSentences = false
+  } = userState || {};
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [customSentence, setCustomSentence] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -52,22 +53,22 @@ const RecordingPage: React.FC = () => {
   } = useAudioRecorder();
 
   useEffect(() => {
-    clearPersistedUserData();
-
     if (!userInfo) {
       navigate('/');
       return;
     }
 
     // Fetch available sentences when component mounts or userInfo changes
-    if (userInfo?.guestId && mode === 'existing') {
-      dispatch(fetchAvailableSentences(userInfo.guestId));
+    if (mode === 'existing') {
+      // Always fetch sentences, use userId if available, otherwise use empty string
+      const personId = userInfo?.userId || '';
+      dispatch(fetchAvailableSentences(personId));
     }
   }, [userInfo, dispatch, navigate, mode]);
 
   // Update current sentence when availableSentences changes
   useEffect(() => {
-    if (availableSentences.length > 0 && mode === 'existing' && !currentSentence) {
+    if (availableSentences && availableSentences.length > 0 && mode === 'existing' && !currentSentence) {
       dispatch(setCurrentSentence(availableSentences[0].Content));
       dispatch(setCurrentSentenceId(availableSentences[0].SentenceID));
     }
@@ -95,7 +96,7 @@ const RecordingPage: React.FC = () => {
       return;
     }
 
-    if (!userInfo?.guestId) {
+    if (!userInfo?.userId) {
       message.error('Không tìm thấy thông tin người dùng');
       return;
     }
@@ -112,7 +113,7 @@ const RecordingPage: React.FC = () => {
         // Upload recording for existing sentence
         const response = await uploadRecording(
           audioBlob,
-          userInfo.guestId,
+          userInfo.userId,
           currentSentenceId
         );
 
@@ -138,8 +139,8 @@ const RecordingPage: React.FC = () => {
           await new Promise(resolve => setTimeout(resolve, 100));
 
           // Refresh available sentences to get updated list and move to next sentence
-          if (userInfo?.guestId) {
-            const updatedSentences = await dispatch(fetchAvailableSentences(userInfo.guestId)).unwrap();
+          if (userInfo?.userId) {
+            const updatedSentences = await dispatch(fetchAvailableSentences(userInfo.userId)).unwrap();
 
             if (updatedSentences.length > 0) {
               // Move to next available sentence
@@ -205,15 +206,15 @@ const RecordingPage: React.FC = () => {
       return;
     }
 
-    if (!userInfo?.name) {
-      message.error('Không tìm thấy tên người dùng');
+    if (!userInfo?.email) {
+      message.error('Không tìm thấy email người dùng');
       return;
     }
 
     setSubmittingSentence(true);
     try {
       const response = await createUserSentence({
-        name: userInfo.name,
+        email: userInfo.email,
         content: customSentence.trim(),
       });
 
@@ -273,7 +274,7 @@ const RecordingPage: React.FC = () => {
               Ghi Âm
             </Title>
             <Text className="text-base md:text-lg text-gray-600 font-medium">
-              Xin chào, <span className="text-blue-600 font-semibold">{userInfo.name}</span>
+              Xin chào, <span className="text-blue-600 font-semibold">{userInfo.email}</span>
             </Text>
           </div>
         </div>
@@ -316,7 +317,7 @@ const RecordingPage: React.FC = () => {
                 <div className="flex justify-center items-center py-4">
                   <Spin size="large" />
                 </div>
-              ) : availableSentences.length === 0 ? (
+              ) : !availableSentences || availableSentences.length === 0 ? (
                 <div className="text-center py-4">
                   <Text className="text-gray-500 text-base">
                     Không còn câu nào cần ghi âm. Cảm ơn bạn!

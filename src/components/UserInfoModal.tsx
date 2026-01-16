@@ -14,34 +14,68 @@ interface UserInfoModalProps {
 }
 
 const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess }) => {
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [emailError, setEmailError] = useState<string>('');
   const dispatch = useAppDispatch();
   const { creatingUser } = useAppSelector((state) => state.user);
 
+  // Validate email format
+  const validateEmail = (emailValue: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailValue);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    
+    // Clear error when user starts typing
+    if (emailError) {
+      setEmailError('');
+    }
+  };
+
   const handleContinue = async () => {
-    if (name.trim() && gender) {
-      try {
-        // Call API to create user and get guestId
-        const result = await dispatch(createUser({ name: name.trim(), gender })).unwrap();
+    const trimmedEmail = email.trim();
+    
+    // Validate email format
+    if (!trimmedEmail) {
+      setEmailError('Vui lòng nhập email');
+      return;
+    }
+    
+    if (!validateEmail(trimmedEmail)) {
+      setEmailError('Email không hợp lệ. Vui lòng nhập đúng định dạng email');
+      return;
+    }
+    
+    if (!gender) {
+      return;
+    }
 
-        // Set user info with guestId from API response
-        dispatch(setUserInfo({ name: name.trim(), gender, guestId: result.guestId }));
+    try {
+      // Call API to create user and get userId
+      const result = await dispatch(createUser({ email: trimmedEmail, gender })).unwrap();
 
-        setName('');
-        setGender(null);
-        onSuccess();
-        onClose();
-      } catch (error) {
-        message.error('Không thể tạo người dùng. Vui lòng thử lại.');
-        console.error('Error creating user:', error);
-      }
+      // Set user info with userId from API response
+      dispatch(setUserInfo({ email: trimmedEmail, gender, userId: result.userId }));
+
+      setEmail('');
+      setGender(null);
+      setEmailError('');
+      onSuccess();
+      onClose();
+    } catch (error) {
+      message.error('Không thể tạo người dùng. Vui lòng thử lại.');
+      console.error('Error creating user:', error);
     }
   };
 
   const handleCancel = () => {
-    setName('');
+    setEmail('');
     setGender(null);
+    setEmailError('');
     onClose();
   };
 
@@ -80,20 +114,35 @@ const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess 
           </Text>
         </div>
 
-        {/* Name Input */}
+        {/* Email Input */}
         <div className="space-y-2">
           <Text strong className="text-base block text-gray-700 font-semibold">
-            Tên của bạn
+            Email của bạn <span className="text-red-500">*</span>
           </Text>
           <Input
+            type="email"
             size="large"
-            placeholder="Nhập tên của bạn"
+            placeholder="Nhập email của bạn (ví dụ: example@gmail.com)"
             prefix={<UserOutlined className="text-gray-400" />}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-12 rounded-xl border-gray-300 hover:border-blue-400 focus:border-blue-500 transition-colors"
+            value={email}
+            onChange={handleEmailChange}
+            status={emailError ? 'error' : ''}
+            className={cn(
+              "h-12 rounded-xl border-gray-300 hover:border-blue-400 focus:border-blue-500 transition-colors",
+              emailError && "border-red-500"
+            )}
             onPressEnter={handleContinue}
+            onBlur={() => {
+              if (email.trim() && !validateEmail(email.trim())) {
+                setEmailError('Email không hợp lệ. Vui lòng nhập đúng định dạng email');
+              }
+            }}
           />
+          {emailError && (
+            <Text type="danger" className="text-sm">
+              {emailError}
+            </Text>
+          )}
         </div>
 
         {/* Gender Selection */}
@@ -176,7 +225,7 @@ const UserInfoModal: React.FC<UserInfoModalProps> = ({ open, onClose, onSuccess 
           size="large"
           block
           onClick={handleContinue}
-          disabled={!name.trim() || !gender || creatingUser}
+          disabled={!email.trim() || !validateEmail(email.trim()) || !gender || creatingUser}
           loading={creatingUser}
           className={cn(
             "h-12 rounded-xl text-base font-semibold transition-all duration-300",

@@ -84,7 +84,7 @@ const ThankYouPage: React.FC = () => {
 
           {/* Message */}
           <h1 className="text-3xl md:text-4xl text-white/90 font-light">
-            Cảm ơn <span className="font-semibold text-blue-600">{userInfo.name}</span> đã hoàn thành
+            Cảm ơn <span className="font-semibold text-blue-600">{userInfo.email}</span> đã hoàn thành
           </h1>
 
           {/* Recording Count */}
