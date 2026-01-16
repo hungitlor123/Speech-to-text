@@ -4,17 +4,29 @@ import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import userReducer from "../features/userSlice";
 
+// Config cho user reducer - chỉ lưu userInfo
+const userPersistConfig = {
+  key: "user",
+  storage,
+  whitelist: ["userInfo"], // Chỉ lưu userInfo (email, gender, userId)
+};
+
+// Apply persist to user reducer
+const persistedUserReducer = persistReducer(userPersistConfig, userReducer);
+
+// Config cho root
 const presistConfig = {
   key: "root",
   storage,
-  whitelist: [], // Không lưu dữ liệu nào vào localStorage
+  whitelist: ["user"], // Chỉ lưu user state
 };
 
-// Create a hook for using TypedUseSelectorHook
+// Create root reducer
 const rootReducer = combineReducers({
-  user: userReducer,
+  user: persistedUserReducer,
 });
 
+// Apply persist to root reducer
 const persistedReducer = persistReducer(presistConfig, rootReducer);
 
 // Combine all reducers

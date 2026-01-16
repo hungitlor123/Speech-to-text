@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/services/store/store';
 import UserInfoModal from '@/components/UserInfoModal';
 import { AudioOutlined } from '@ant-design/icons';
-import { clearPersistedUserData } from '@/lib/storageUtils';
 import { Button } from 'antd';
 
 const UserInfoPage: React.FC = () => {
@@ -12,9 +11,6 @@ const UserInfoPage: React.FC = () => {
   const { userInfo } = useAppSelector((state) => state.user);
 
   useEffect(() => {
-    // Xóa dữ liệu cũ trong localStorage khi tải lại trang
-    clearPersistedUserData();
-
     // Nếu đã có thông tin người dùng, chuyển sang trang recording
     if (userInfo) {
       navigate('/recording');

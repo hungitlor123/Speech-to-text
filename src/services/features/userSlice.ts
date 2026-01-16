@@ -2,13 +2,14 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axiosInstance from "@/services/constant/axiosInstance";
 import {
   getSentences,
+  getRecordingsByPersonId,
   Sentence,
 } from "./recordingSlice";
 
 export interface UserInfo {
-  name: string;
+  email: string;
   gender: "male" | "female";
-  guestId?: string;
+  userId?: string;
 }
 
 export interface Recording {
@@ -112,12 +113,12 @@ export const fetchUsers = createAsyncThunk("user/fetchUsers", async () => {
 
 // Async thunk to create user
 export interface CreateUserRequest {
-  name: string;
+  email: string;
   gender: "male" | "female";
 }
 
 export interface CreateUserResponse {
-  guestId: string;
+  userId: string;
   [key: string]: unknown; // For other potential response fields
 }
 
@@ -125,7 +126,7 @@ export const createUser = createAsyncThunk(
   "user/createUser",
   async (userData: CreateUserRequest): Promise<CreateUserResponse> => {
     const response = await axiosInstance.post<CreateUserResponse>("users", {
-      name: userData.name,
+      email: userData.email,
       gender: userData.gender === "male" ? "Male" : "Female", // Convert to capitalized format
     });
     return response.data;
@@ -148,27 +149,52 @@ export const fetchTopContributors = createAsyncThunk(
 );
 
 // Async thunk to fetch available sentences (sentences with status === 1)
-// Note: personId parameter is kept for backward compatibility but no longer used
+// Filters out sentences that the user has already recorded
 export const fetchAvailableSentences = createAsyncThunk(
   "user/fetchAvailableSentences",
-  async (_personId: string): Promise<AvailableSentence[]> => {
-    // Fetch sentences
-    const sentences = await getSentences();
+  async (personId: string): Promise<AvailableSentence[]> => {
+    try {
+      // Fetch sentences
+      const sentences = await getSentences();
 
-    // Filter sentences with status === 1 (Được duyệt - có thể đi voice)
-    const availableSentences = sentences.filter(
-      (sentence: Sentence) => sentence.Status === 1
-    );
+      // Filter sentences with status === 1 (Được duyệt - có thể đi voice)
+      const approvedSentences = sentences.filter(
+        (sentence: Sentence) => sentence.Status === 1
+      );
 
-    // Randomly shuffle and return all available sentences
-    const shuffled = [...availableSentences].sort(() => Math.random() - 0.5);
+      // If personId is provided, filter out sentences that user has already recorded
+      let availableSentences = approvedSentences;
+      if (personId) {
+        try {
+          const userRecordings = await getRecordingsByPersonId(personId);
+          
+          const recordedSentenceIds = new Set(
+            userRecordings.map((recording) => recording.SentenceID)
+          );
+          
+          // Filter out sentences that have been recorded by this user
+          availableSentences = approvedSentences.filter(
+            (sentence) => !recordedSentenceIds.has(sentence.SentenceID)
+          );
+        } catch (error) {
+          console.error("Error fetching user recordings:", error);
+          // If error occurs, return all approved sentences as fallback
+        }
+      }
 
-    return shuffled.map((s: Sentence) => ({
-      SentenceID: s.SentenceID,
-      Content: s.Content,
-      CreatedAt: s.CreatedAt,
-      Status: s.Status,
-    }));
+      // Randomly shuffle and return available sentences
+      const shuffled = [...availableSentences].sort(() => Math.random() - 0.5);
+
+      return shuffled.map((s: Sentence) => ({
+        SentenceID: s.SentenceID,
+        Content: s.Content,
+        CreatedAt: s.CreatedAt,
+        Status: s.Status,
+      }));
+    } catch (error) {
+      console.error("Error in fetchAvailableSentences:", error);
+      throw error;
+    }
   }
 );
 
@@ -240,7 +266,7 @@ const userSlice = createSlice({
       })
       .addCase(createUser.fulfilled, (state) => {
         state.creatingUser = false;
-        // guestId will be set via setUserInfo action after API call
+        // userId will be set via setUserInfo action after API call
       })
       .addCase(createUser.rejected, (state, action) => {
         state.creatingUser = false;
