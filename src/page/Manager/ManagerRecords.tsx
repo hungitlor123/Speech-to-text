@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select } from 'antd';
 import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { getRecordings, getRecordingsByStatus, getSentences, approveRecording, rejectRecording, downloadSentences, Recording, Sentence } from '@/services/features/recordingSlice';
+import { getRecordings, getRecordingsByStatus, getSentences, approveRecording, rejectRecording, Recording, Sentence } from '@/services/features/recordingSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers } from '@/services/features/userSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
@@ -17,7 +17,6 @@ const ManagerRecords: React.FC = () => {
   const [loadingRecordings, setLoadingRecordings] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | null>(null);
-  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetchRecordings();
@@ -83,25 +82,6 @@ const ManagerRecords: React.FC = () => {
       fetchRecordings();
     } catch (error) {
       console.error('Failed to reject recording:', error);
-    }
-  };
-
-  const handleDownloadAll = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'all' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `all-audio-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to download all audio:', error);
-    } finally {
-      setDownloading(false);
     }
   };
 
@@ -291,11 +271,7 @@ const ManagerRecords: React.FC = () => {
                     ]}
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button type="primary" onClick={handleDownloadAll} loading={downloading}>
-                    Tải toàn bộ audio
-                  </Button>
-                </div>
+                
               </div>
 
               {loadingRecordings ? (
