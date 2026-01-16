@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Modal, Form, Input, message, Popconfirm, Row, Col, Tag, Select } from 'antd';
-import { FileTextOutlined, CheckCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined, DownloadOutlined } from '@ant-design/icons';
+import { FileTextOutlined, CheckCircleOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import SidebarManager from '@/components/SidebarManager';
-import { getSentences, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, downloadSentences, Sentence } from '@/services/features/recordingSlice';
+import { getSentences, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, Sentence } from '@/services/features/recordingSlice';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -13,7 +13,6 @@ const ManagerSentences: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSentence, setEditingSentence] = useState<Sentence | null>(null);
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
-  const [downloading, setDownloading] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -31,12 +30,6 @@ const ManagerSentences: React.FC = () => {
     } finally {
       setLoadingSentences(false);
     }
-  };
-
-  const handleCreateSentence = () => {
-    setEditingSentence(null);
-    form.resetFields();
-    setIsModalVisible(true);
   };
 
   const handleEditSentence = (sentence: Sentence) => {
@@ -75,75 +68,6 @@ const ManagerSentences: React.FC = () => {
     } catch (error) {
       console.error('Failed to reject sentence:', error);
       message.error('Từ chối câu thất bại');
-    }
-  };
-
-  const handleDownloadAll = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'all' });
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `all-audio-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      message.success('Tải toàn bộ audio thành công');
-    } catch (error) {
-      console.error('Failed to download all audio:', error);
-      message.error('Tải toàn bộ audio thất bại');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const handleDownloadWithAudio = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'with-audio' });
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `sentences-with-audio-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      message.success('Tải câu đã thu thành công');
-    } catch (error) {
-      console.error('Failed to download sentences with audio:', error);
-      message.error('Tải câu đã thu thất bại');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const handleDownloadApproved = async () => {
-    setDownloading(true);
-    try {
-      const blob = await downloadSentences({ mode: 'approved' });
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `sentences-approved-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      message.success('Tải câu đã duyệt thành công');
-    } catch (error) {
-      console.error('Failed to download approved sentences:', error);
-      message.error('Tải câu đã duyệt thất bại');
-    } finally {
-      setDownloading(false);
     }
   };
 
@@ -384,20 +308,7 @@ const ManagerSentences: React.FC = () => {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateSentence}>
-                    Tạo câu
-                  </Button>
-                  <Button onClick={handleDownloadAll} loading={downloading} icon={<DownloadOutlined />}>
-                    Tải toàn bộ audio
-                  </Button>
-                  <Button onClick={handleDownloadWithAudio} loading={downloading} icon={<DownloadOutlined />}>
-                    Tải câu đã thu
-                  </Button>
-                  <Button onClick={handleDownloadApproved} loading={downloading} icon={<DownloadOutlined />}>
-                    Tải câu đã duyệt
-                  </Button>
-                </div>
+               
               
               </div>
               {loadingSentences ? (

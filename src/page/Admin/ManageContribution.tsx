@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Card, Row, Col, Avatar } from 'antd';
-import { TrophyOutlined, UserOutlined, FileTextOutlined, CrownOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col } from 'antd';
+import { TrophyOutlined, UserOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { fetchTopContributors, TopContributor } from '@/services/features/userSlice';
 import { useDispatch } from 'react-redux';
@@ -51,9 +51,7 @@ const ManageContribution: React.FC = () => {
               >
                 {index + 1}
               </span>
-              <span className="text-xs font-semibold text-amber-700">
-                {index === 0 ? 'Vàng' : index === 1 ? 'Bạc' : index === 2 ? 'Đồng' : `#${index + 1}`}
-              </span>
+              
             </div>
           </div>
         );
@@ -134,7 +132,6 @@ const ManageContribution: React.FC = () => {
     },
   ];
 
-  const topThree = Array.isArray(topContributors) ? topContributors.slice(0, 3) : [];
   const totalSentences = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + c.totalSentences, 0) : 0;
   const approvedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status1Count || 0), 0) : 0;
   const rejectedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status3Count || 0), 0) : 0;
@@ -233,102 +230,7 @@ const ManageContribution: React.FC = () => {
             </Col>
           </Row>
 
-          {/* Top 3 Podium */}
-          {!loading && Array.isArray(topThree) && topThree.length >= 3 && (
-            <Row gutter={[16, 16]} className="mb-8">
-              {/* Second Place */}
-              <Col xs={24} md={8}>
-                <Card
-                  className="text-center shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ 
-                    borderTop: '4px solid #C0C0C0',
-                    background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)'
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-1.5 py-2">
-                    <TrophyOutlined style={{ fontSize: '28px', color: '#C0C0C0' }} />
-                    <Avatar 
-                      size={56} 
-                      icon={<UserOutlined />}
-                      style={{ 
-                        backgroundColor: '#1890ff',
-                        fontSize: '22px'
-                      }}
-                    />
-                    <div className="text-center">
-                      <Text strong style={{ fontSize: '14px' }} className="break-all px-2">{topThree[1]?.userEmail || '-'}</Text>
-                      <div className="text-lg font-bold text-gray-700 mt-1">
-                        {((topThree[1]?.totalSentences || 0)).toLocaleString()}
-                      </div>
-                      <Text className="text-xs text-gray-500">Tổng đóng góp</Text>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-
-              {/* First Place */}
-              <Col xs={24} md={8}>
-                <Card
-                  className="text-center shadow-xl hover:shadow-2xl transition-shadow"
-                  style={{ 
-                    borderTop: '4px solid #FFD700',
-                    background: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)',
-                    transform: 'scale(1.05)'
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-1.5 py-2">
-                    <CrownOutlined style={{ fontSize: '34px', color: '#FFD700' }} />
-                    <Avatar 
-                      size={68} 
-                      icon={<UserOutlined />}
-                      style={{ 
-                        backgroundColor: '#1890ff',
-                        fontSize: '26px',
-                        border: '2px solid #FFD700'
-                      }}
-                    />
-                    <div className="text-center">
-                      <Text strong style={{ fontSize: '16px', color: '#FFD700' }} className="break-all px-2">{topThree[0]?.userEmail || '-'}</Text>
-                      <div className="text-xl font-bold text-yellow-600 mt-1">
-                        {((topThree[0]?.totalSentences || 0)).toLocaleString()}
-                      </div>
-                      <Text className="text-xs text-gray-500">Tổng đóng góp</Text>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-
-              {/* Third Place */}
-              <Col xs={24} md={8}>
-                <Card
-                  className="text-center shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ 
-                    borderTop: '4px solid #CD7F32',
-                    background: 'linear-gradient(135deg, #fef3e8 0%, #ffffff 100%)'
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-1.5 py-2">
-                    <TrophyOutlined style={{ fontSize: '28px', color: '#CD7F32' }} />
-                    <Avatar 
-                      size={56} 
-                      icon={<UserOutlined />}
-                      style={{ 
-                        backgroundColor: '#1890ff',
-                        fontSize: '22px'
-                      }}
-                    />
-                    <div className="text-center">
-                      <Text strong style={{ fontSize: '14px' }} className="break-all px-2">{topThree[2]?.userEmail || '-'}</Text>
-                      <div className="text-lg font-bold text-orange-700 mt-1">
-                        {((topThree[2]?.totalSentences || 0)).toLocaleString()}
-                      </div>
-                      <Text className="text-xs text-gray-500">Tổng đóng góp</Text>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
-          )}
+         
 
           {/* Top Contributors Table */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
