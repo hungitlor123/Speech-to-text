@@ -267,7 +267,7 @@ export const downloadSentences = async (
 // Get top recorders
 export interface TopRecorder {
   userId: string;
-  name: string;
+  email: string;
   gender: string;
   totalRecordings: number;
   approvedRecordings?: number;

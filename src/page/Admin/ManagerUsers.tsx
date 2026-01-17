@@ -344,7 +344,7 @@ const ManagerUsers: React.FC = () => {
 
                       {/* User Info */}
                       <div className="space-y-2">
-                        <h4 className="font-bold text-gray-900 text-sm">{recorder.name}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">{recorder.email}</h4>
                         <div className="flex items-center gap-2">
                           <Tag
                             color={recorder.gender === 'Male' ? 'blue' : 'pink'}
