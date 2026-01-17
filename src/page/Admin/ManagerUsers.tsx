@@ -305,7 +305,7 @@ const ManagerUsers: React.FC = () => {
                   Top Những Người Ghi Âm
                 </Title>
                 <Text className="text-gray-600">
-                  Danh sách 10 người ghi âm nhiều nhất trong hệ thống
+                  Danh sách 6 người ghi âm nhiều nhất trong hệ thống
                 </Text>
               </div>
 
