@@ -17,10 +17,10 @@ const ManagerUsers: React.FC = () => {
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
   const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string }>>([]);
-  const [selectedUserName, setSelectedUserName] = useState('');
+  const [selectedUserEmail, setSelectedUserEmail] = useState('');
   const [contributedSentencesModalVisible, setContributedSentencesModalVisible] = useState(false);
   const [selectedUserContributedSentences, setSelectedUserContributedSentences] = useState<Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>>([]);
-  const [selectedContributorName, setSelectedContributorName] = useState('');
+  const [selectedContributorEmail, setSelectedContributorEmail] = useState('');
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -39,23 +39,23 @@ const ManagerUsers: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (personId: string, userName: string) => {
+  const handleDeleteUser = async (personId: string, userEmail: string) => {
     try {
       await dispatch(deleteUser(personId)).unwrap();
-      message.success(`Đã xóa người dùng ${userName} thành công`);
+      message.success(`Đã xóa người dùng ${userEmail} thành công`);
     } catch (error: any) {
       message.error(error.message || 'Không thể xóa người dùng');
     }
   };
 
-  const handleShowSentences = (userName: string, sentences?: Array<{ SentenceID: string; Content: string }>) => {
-    setSelectedUserName(userName);
+  const handleShowSentences = (userEmail: string, sentences?: Array<{ SentenceID: string; Content: string }>) => {
+    setSelectedUserEmail(userEmail);
     setSelectedUserSentences(sentences || []);
     setSentencesModalVisible(true);
   };
 
-  const handleShowContributedSentences = (userName: string, sentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>) => {
-    setSelectedContributorName(userName);
+  const handleShowContributedSentences = (userEmail: string, sentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>) => {
+    setSelectedContributorEmail(userEmail);
     setSelectedUserContributedSentences(sentences || []);
     setContributedSentencesModalVisible(true);
   };
@@ -99,7 +99,7 @@ const ManagerUsers: React.FC = () => {
         <Tag 
           color="blue" 
           className="font-medium cursor-pointer hover:opacity-80"
-          onClick={() => handleShowSentences(record.Name, record.SentencesDone)}
+              onClick={() => handleShowSentences(record.Email, record.SentencesDone)}
         >
           {total || 0} câu
         </Tag>
@@ -129,7 +129,7 @@ const ManagerUsers: React.FC = () => {
         <Tag 
           color="purple" 
           className="font-medium cursor-pointer hover:opacity-80"
-          onClick={() => handleShowContributedSentences(record.Name, record.CreatedSentences)}
+              onClick={() => handleShowContributedSentences(record.Email, record.CreatedSentences)}
         >
           {total || 0} câu
         </Tag>
@@ -154,8 +154,8 @@ const ManagerUsers: React.FC = () => {
         <Space>
           <Popconfirm
             title="Xóa người dùng"
-            description={`Bạn có chắc chắn muốn xóa người dùng "${record.Name}"?`}
-            onConfirm={() => handleDeleteUser(record.PersonID, record.Name)}
+            description={`Bạn có chắc chắn muốn xóa người dùng "${record.Email}"?`}
+            onConfirm={() => handleDeleteUser(record.PersonID, record.Email)}
             okText="Xóa"
             cancelText="Hủy"
             okButtonProps={{ danger: true, loading: deletingUser }}
@@ -347,7 +347,7 @@ const ManagerUsers: React.FC = () => {
 
                       {/* User Info */}
                       <div className="space-y-2">
-                        <h4 className="font-bold text-gray-900 text-sm">{recorder.name}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">{recorder.email}</h4>
                         <div className="flex items-center gap-2">
                           <Tag
                             color={recorder.gender === 'Male' ? 'blue' : 'pink'}
@@ -403,7 +403,7 @@ const ManagerUsers: React.FC = () => {
       </div>
       {/* Modal hiển thị danh sách câu đã làm */}
       <Modal
-        title={`Danh sách câu đã làm - ${selectedUserName}`}
+        title={`Danh sách câu đã làm - ${selectedUserEmail}`}
         open={sentencesModalVisible}
         onCancel={() => setSentencesModalVisible(false)}
         footer={[
@@ -439,7 +439,7 @@ const ManagerUsers: React.FC = () => {
 
       {/* Modal hiển thị danh sách câu đóng góp */}
       <Modal
-        title={`Danh sách câu đóng góp - ${selectedContributorName}`}
+        title={`Danh sách câu đóng góp - ${selectedContributorEmail}`}
         open={contributedSentencesModalVisible}
         onCancel={() => setContributedSentencesModalVisible(false)}
         footer={[
