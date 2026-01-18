@@ -76,11 +76,9 @@ const LoginUser: React.FC = () => {
             className="!mb-0 !text-4xl md:!text-5xl !font-bold !text-blue-600"
             style={{ letterSpacing: '-0.02em' }}
           >
-            Đăng Nhập
-          </Title>
-          <Text className="text-lg md:text-xl text-gray-600 font-medium">
             Chào mừng bạn quay trở lại
-          </Text>
+          </Title>
+          \
         </div>
 
         {/* Login Form Card */}
@@ -117,7 +115,7 @@ const LoginUser: React.FC = () => {
               loading={loading}
               className="w-full h-12 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-medium transition-all text-base"
             >
-              Đăng nhập
+              Xem Lại Lịch Sử Ghi Âm
             </Button>
           </div>
         </div>
