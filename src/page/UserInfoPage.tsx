@@ -35,7 +35,7 @@ const UserInfoPage: React.FC = () => {
           onClick={() => navigate('/login-user')}
           className="bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-medium transition-all"
         >
-          Đăng nhập
+          Xem Lại Bản Ghi
         </Button>
       </div>
 
