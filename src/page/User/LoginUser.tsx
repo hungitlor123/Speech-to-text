@@ -4,7 +4,7 @@ import { UserOutlined, LoginOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin, fetchUserData } from '@/services/features/autSlice';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const LoginUser: React.FC = () => {
   const navigate = useNavigate();
@@ -18,33 +18,33 @@ const LoginUser: React.FC = () => {
     }
 
     setLoading(true);
-    
+
     try {
       const loginResponse = await loginAdmin(email);
-      
+
       if (loginResponse.token) {
         // Store token
         localStorage.setItem('userToken', loginResponse.token);
         localStorage.setItem('userEmail', email);
-        
+
         // Decode JWT to get userId
         const tokenParts = loginResponse.token.split('.');
         if (tokenParts.length === 3) {
           const payload = JSON.parse(atob(tokenParts[1]));
           const userId = payload.userId || payload.userid;
-          
+
           if (userId) {
             localStorage.setItem('userID', userId);
-            
+
             // Fetch user data
             const userData = await fetchUserData(userId);
             localStorage.setItem('userName', userData.Name || email);
             localStorage.setItem('userRole', userData.Role || 'User');
           }
         }
-        
+
         message.success('Đăng nhập thành công!');
-        
+
         // Navigate to recording page
         setTimeout(() => {
           navigate('/user/profile');
@@ -53,9 +53,10 @@ const LoginUser: React.FC = () => {
         message.error(loginResponse.message || 'Đăng nhập thất bại');
         setLoading(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
-      message.error(error.message || 'Email không tồn tại hoặc không hợp lệ');
+      const errorMessage = error instanceof Error ? error.message : 'Email không tồn tại hoặc không hợp lệ';
+      message.error(errorMessage);
       setLoading(false);
     }
   };
@@ -71,14 +72,13 @@ const LoginUser: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center space-y-3 py-4">
-          <Title 
-            level={1} 
+          <Title
+            level={1}
             className="!mb-0 !text-4xl md:!text-5xl !font-bold !text-blue-600"
             style={{ letterSpacing: '-0.02em' }}
           >
             Chào mừng bạn quay trở lại
           </Title>
-          \
         </div>
 
         {/* Login Form Card */}
@@ -120,7 +120,7 @@ const LoginUser: React.FC = () => {
           </div>
         </div>
 
-  
+
       </div>
     </div>
   );
