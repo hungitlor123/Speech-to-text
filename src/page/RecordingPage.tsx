@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Typography, Tag, Input, message, Spin } from 'antd';
+import { Button, Typography, Tag, Input, message, Spin, Modal } from 'antd';
 import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
@@ -226,9 +226,37 @@ const RecordingPage: React.FC = () => {
         // Stay on recording page, don't navigate away
       }
     } catch (error: unknown) {
-      console.error('Error submitting sentence:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Không thể gửi câu. Vui lòng thử lại.';
-      message.error(errorMessage);
+      const errAny = error as any;
+      // Log only the backend message to avoid dumping large objects into the console
+      console.error('Error submitting sentence:', errAny?.message ?? errAny);
+      if (errAny && typeof errAny === 'object') {
+        if (Array.isArray(errAny.duplicates) && errAny.duplicates.length > 0) {
+          Modal.error({
+            title: 'Câu bị trùng lặp',
+            content: (
+              <div>
+                <p><strong>Tìm thấy {errAny.duplicates.length} câu trùng:</strong></p>
+                <ul style={{ marginLeft: '20px', marginTop: '10px' }}>
+                  {errAny.duplicates.map((dup: any, index: number) => (
+                    <li key={index} style={{ marginBottom: '8px' }}>
+                      {dup.content}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ),
+            okText: 'OK',
+          });
+        } else if (errAny.message) {
+          // If backend provided a message, show it directly
+          message.error(errAny.message);
+        } else {
+          message.error('Không thể gửi câu. Vui lòng thử lại.');
+        }
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Không thể gửi câu. Vui lòng thử lại.';
+        message.error(errorMessage);
+      }
     } finally {
       setSubmittingSentence(false);
     }
