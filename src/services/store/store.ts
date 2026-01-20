@@ -13,25 +13,22 @@ const userPersistConfig = {
 
 // Apply persist to user reducer
 const persistedUserReducer = persistReducer(userPersistConfig, userReducer);
-
 // Config cho root
-const presistConfig = {
-  key: "root",
-  storage,
-  whitelist: ["user"], // Chỉ lưu user state
-};
-
+// const presistConfig = {
+//   key: "root",
+//   storage,
+//   whitelist: ["user"], // Chỉ lưu user state
+// };
 // Create root reducer
 const rootReducer = combineReducers({
   user: persistedUserReducer,
 });
-
 // Apply persist to root reducer
-const persistedReducer = persistReducer(presistConfig, rootReducer);
-
+//const persistedReducer = persistReducer(presistConfig, rootReducer);
 // Combine all reducers
 export const store = configureStore({
-  reducer: persistedReducer,
+  // reducer: persistedReducer,
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,

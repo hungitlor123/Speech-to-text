@@ -84,9 +84,36 @@ const ManagerSentences: React.FC = () => {
       setIsModalVisible(false);
       form.resetFields();
       fetchSentences();
-    } catch (error) {
-      console.error('Failed to save sentence:', error);
-      message.error('Lưu câu thất bại');
+    } catch (error: any) {
+      console.error('Full error object:', error);
+      
+      // Error từ backend là object được throw ra trực tiếp
+      const duplicates = error?.duplicates || [];
+      const errorMessage = error?.message || '';
+      
+      console.log('Duplicates:', duplicates);
+      console.log('Message:', errorMessage);
+      
+      if (duplicates && duplicates.length > 0) {
+        Modal.error({
+          title: 'Câu bị trùng lặp',
+          content: (
+            <div>
+              <p><strong>Tìm thấy {duplicates.length} câu trùng:</strong></p>
+              <ul style={{ marginLeft: '20px', marginTop: '10px' }}>
+                {duplicates.map((dup: any, index: number) => (
+                  <li key={index} style={{ marginBottom: '8px' }}>
+                    {dup.content}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ),
+          okText: 'OK',
+        });
+      } else {
+        message.error('Lưu câu thất bại');
+      }
     }
   };
 
