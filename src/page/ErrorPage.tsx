@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Typography } from 'antd';
-import { 
-  HomeOutlined, 
-  LockOutlined, 
+import {
+  HomeOutlined,
+  LockOutlined,
   ExclamationCircleOutlined,
   DisconnectOutlined,
-  FileSearchOutlined 
+  FileSearchOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -141,7 +141,7 @@ const ErrorPage: React.FC = () => {
         {/* Decorative Elements */}
         <div className="mt-8 text-center">
           <Text className="text-sm text-gray-400">
-            © 2026 Speech2Text. All rights reserved.
+            © 2026 SpeechSwitch. All rights reserved.
           </Text>
         </div>
       </div>

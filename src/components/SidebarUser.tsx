@@ -38,7 +38,7 @@ const SidebarUser = () => {
           <Menu className="w-5 h-5" />
         </button>
         {!collapsed && (
-          <span className="ml-3 font-bold text-blue-900">Speech2Text</span>
+          <span className="ml-3 font-bold text-blue-900">SpeechSwitch</span>
         )}
       </div>
 
@@ -50,11 +50,10 @@ const SidebarUser = () => {
             <div key={item.path} className="px-3 mb-2">
               <button
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${
-                  active
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${active
                     ? 'bg-blue-50 text-blue-600'
                     : 'text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
               >
                 <item.icon className="w-5 h-5" />
                 {!collapsed && item.label}
