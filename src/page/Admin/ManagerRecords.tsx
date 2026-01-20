@@ -71,7 +71,7 @@ const ManagerRecords: React.FC = () => {
   const handleApproveRecording = async (recordingId: string) => {
     try {
       await approveRecording(recordingId);
-      fetchRecordings();
+      fetchRecordings(recordingStatusFilter);
     } catch (error) {
       console.error('Failed to approve recording:', error);
     }
@@ -80,7 +80,7 @@ const ManagerRecords: React.FC = () => {
   const handleRejectRecording = async (recordingId: string) => {
     try {
       await rejectRecording(recordingId);
-      fetchRecordings();
+      fetchRecordings(recordingStatusFilter);
     } catch (error) {
       console.error('Failed to reject recording:', error);
     }
