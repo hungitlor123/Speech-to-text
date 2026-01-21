@@ -45,6 +45,7 @@ export interface TopContributor {
   userEmail: string;
   userId: string | null;
   totalSentences: number;
+  
   status1Count: number;
   status2Count: number;
   status3Count: number;
