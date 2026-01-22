@@ -6,6 +6,7 @@ interface UseAudioRecorderReturn {
   audioBlob: Blob | null;
   audioUrl: string | null;
   mediaStream: MediaStream | null;
+  lastError: string | null;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   resetRecording: () => void;
@@ -17,6 +18,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recorderRef = useRef<any | null>(null); // fallback recorder (RecordRTC) for iOS/Safari
@@ -43,6 +45,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       setMediaStream(stream);
+      setLastError(null);
       
       // Prefer native MediaRecorder when available and usable
       const canUseNative =
@@ -100,6 +103,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
           setRecordingTime(0);
         } catch (e) {
           console.error("Fallback recorder failed to load:", e);
+          setLastError(e instanceof Error ? e.message : String(e));
           // If fallback import fails, stop tracks and rethrow so UI can show error
           stream.getTracks().forEach((track) => track.stop());
           setMediaStream(null);
@@ -114,6 +118,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       }, 1000);
     } catch (error) {
       console.error("Error accessing microphone:", error);
+      setLastError(error instanceof Error ? error.message : String(error));
       throw error;
     }
   };
@@ -186,6 +191,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
     audioBlob,
     audioUrl,
     mediaStream,
+    lastError,
     startRecording,
     stopRecording,
     resetRecording,
