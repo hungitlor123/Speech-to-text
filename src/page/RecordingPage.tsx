@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Typography, Tag, Input, message, Spin, Modal } from 'antd';
+import { Button, Typography, Tag, Input, message, Spin, Modal, Alert } from 'antd';
 import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
@@ -50,6 +50,7 @@ const RecordingPage: React.FC = () => {
     startRecording,
     stopRecording,
     resetRecording,
+    lastError,
   } = useAudioRecorder();
 
   useEffect(() => {
@@ -84,6 +85,8 @@ const RecordingPage: React.FC = () => {
       await startRecording();
     } catch (error) {
       console.error('Failed to start recording:', error);
+      const errMsg = error instanceof Error ? error.message : 'Không thể truy cập micro. Vui lòng cho phép quyền và thử lại.';
+      message.error(errMsg);
     }
   };
 
@@ -445,6 +448,17 @@ const RecordingPage: React.FC = () => {
         {/* Recording Section - Fixed layout to prevent button movement (only for existing mode) */}
         {mode === 'existing' && !audioUrl && (
           <div className="flex flex-col" style={{ minHeight: '300px' }}>
+            {/* Error alert for recording issues (e.g., permissions / unsupported) */}
+            {lastError && (
+              <div className="mb-3">
+                <Alert
+                  type="error"
+                  showIcon
+                  message="Lỗi ghi âm"
+                  description={lastError}
+                />
+              </div>
+            )}
             {/* Recording Waveform Container - Fixed height matching AudioWaveform */}
             <div style={{ height: '228px', overflow: 'hidden', marginBottom: '8px' }}>
               {isRecording && mediaStream ? (
