@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
         
         // Fetch contributed sentences count
         const topContributors = await dispatch(fetchTopContributors()).unwrap();
-        const totalContributed = topContributors.reduce((sum, c) => sum + c.totalSentences, 0);
+        const totalContributed = topContributors.reduce((sum, c) => sum + (c.totalSentences || 0), 0);
         setContributedSentences(totalContributed);
       } catch (error) {
         console.error('Failed to fetch data:', error);
