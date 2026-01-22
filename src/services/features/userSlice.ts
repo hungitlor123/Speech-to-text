@@ -42,14 +42,22 @@ export interface User {
 }
 
 export interface TopContributor {
-  userEmail: string;
-  userId: string | null;
-  totalSentences: number;
-  
-  status1Count: number;
-  status2Count: number;
-  status3Count: number;
-  createdAt: string | null;
+  // Raw API fields (kept for clarity)
+  PersonID?: string;
+  Email?: string;
+
+  // Mapped fields used by UI
+  userEmail?: string;
+  userId?: string | null;
+  totalSentences?: number; // mapped from TotalSentencesDone
+  TotalSentencesDone?: number;
+  TotalContributedByUser?: number;
+  TotalContributedApproved?: number;
+
+  status1Count?: number;
+  status2Count?: number;
+  status3Count?: number;
+  createdAt?: string | null;
   RecordedSentences?: Array<{
     SentenceID: string;
     Content: string;
@@ -144,8 +152,38 @@ export const deleteUser = createAsyncThunk(
 export const fetchTopContributors = createAsyncThunk(
   "user/fetchTopContributors",
   async (): Promise<TopContributor[]> => {
-    const response = await axiosInstance.get<{ filter: any; count: number; data: TopContributor[] }>("users/top-sentence-contributors");
-    return response.data.data || [];
+    // Call the general `users` endpoint and map API fields to the UI fields expected:
+    // - userId <- PersonID
+    // - userEmail <- Email
+    // - totalSentences <- TotalSentencesDone
+    // - TotalContributedByUser <- TotalContributedByUser
+    // - TotalContributedApproved <- TotalContributedApproved
+    const response = await axiosInstance.get("users");
+    const payload = response.data;
+
+    // Normalize to an array of items
+    const items = Array.isArray(payload) ? payload : (payload && Array.isArray((payload as any).data) ? (payload as any).data : []);
+
+    return items.map((item: any) => ({
+      PersonID: item.PersonID ?? item.personId ?? null,
+      Email: item.Email ?? item.email ?? undefined,
+      userEmail: item.Email ?? item.email ?? item.UserEmail ?? "Ẩn danh",
+      userId: item.PersonID ?? item.personId ?? null,
+      // Map API fields to the UI columns:
+      // - RecordingTotalCount (Số câu ghi âm) <- TotalSentencesDone
+      // - totalSentences (Số câu đóng góp) <- TotalContributedByUser
+      // - status1Count (Đã duyệt) <- TotalContributedApproved
+      RecordingTotalCount: Number(item.TotalSentencesDone ?? item.TotalSentences ?? 0),
+      totalSentences: Number(item.TotalContributedByUser ?? item.TotalContributedByUser ?? 0),
+      TotalSentencesDone: Number(item.TotalSentencesDone ?? item.TotalSentences ?? 0),
+      TotalContributedByUser: Number(item.TotalContributedByUser ?? 0),
+      TotalContributedApproved: Number(item.TotalContributedApproved ?? 0),
+      status1Count: Number(item.TotalContributedApproved ?? item.status1Count ?? 0),
+      status2Count: Number(item.status2Count ?? 0),
+      status3Count: Number(item.status3Count ?? 0),
+      createdAt: item.CreatedAt ?? item.createdAt ?? null,
+      RecordedSentences: item.RecordedSentences ?? item.recordedSentences,
+    }));
   }
 );
 
