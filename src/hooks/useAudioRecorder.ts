@@ -19,6 +19,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recorderRef = useRef<any | null>(null); // fallback recorder (RecordRTC) for iOS/Safari
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -43,33 +44,69 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       streamRef.current = stream;
       setMediaStream(stream);
       
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      // Prefer native MediaRecorder when available and usable
+      const canUseNative =
+        typeof (window as any).MediaRecorder !== "undefined" &&
+        (MediaRecorder as any).isTypeSupported
+          ? (MediaRecorder as any).isTypeSupported("audio/webm;codecs=opus") ||
+            (MediaRecorder as any).isTypeSupported("audio/webm")
+          : typeof (window as any).MediaRecorder !== "undefined";
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      if (canUseNative) {
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+          setAudioBlob(audioBlob);
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+
+          // Stop all tracks
+          stream.getTracks().forEach((track) => track.stop());
+          setMediaStream(null);
+          streamRef.current = null;
+          mediaRecorderRef.current = null;
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingTime(0);
+      } else {
+        // Fallback for iOS / browsers without MediaRecorder support
+        try {
+          const mod = await import("recordrtc");
+          const RecordRTC = (mod && (mod as any).default) || mod;
+          const recorder = new (RecordRTC as any)(stream, {
+            type: "audio",
+            mimeType: "audio/wav",
+            // preferWebAudio allows using WebAudio to generate WAV which is more compatible
+            recorderType: (RecordRTC as any).StereoAudioRecorder || undefined,
+          });
+          recorderRef.current = recorder;
+          audioChunksRef.current = [];
+
+          recorder.startRecording();
+          setIsRecording(true);
+          setRecordingTime(0);
+        } catch (e) {
+          console.error("Fallback recorder failed to load:", e);
+          // If fallback import fails, stop tracks and rethrow so UI can show error
+          stream.getTracks().forEach((track) => track.stop());
+          setMediaStream(null);
+          streamRef.current = null;
+          throw e;
         }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        setAudioBlob(audioBlob);
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-        setMediaStream(null);
-        streamRef.current = null;
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
+      }
 
       // Start timer
       timerRef.current = setInterval(() => {
@@ -82,13 +119,48 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (!isRecording) return;
+
+    // If using native MediaRecorder
+    if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
       setIsRecording(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      return;
+    }
+
+    // If using fallback recorder (RecordRTC)
+    if (recorderRef.current) {
+      try {
+        const recorder = recorderRef.current;
+        recorder.stopRecording(() => {
+          const audioBlob = recorder.getBlob();
+          setAudioBlob(audioBlob);
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+
+          // Stop all tracks
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+          }
+          setMediaStream(null);
+          streamRef.current = null;
+          recorderRef.current = null;
+        });
+      } catch (e) {
+        console.error("Error stopping fallback recorder:", e);
+      } finally {
+        setIsRecording(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
+      return;
     }
   };
 
