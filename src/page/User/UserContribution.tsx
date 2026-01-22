@@ -116,7 +116,7 @@ const UserContribution: React.FC = () => {
       key: "totalSentences",
       width: 200,
       sorter: (a: TopContributor, b: TopContributor) =>
-        a.totalSentences - b.totalSentences,
+        (a.totalSentences || 0) - (b.totalSentences || 0),
       render: (count: number | undefined) => (
         <div className="flex items-center gap-2">
           <FileTextOutlined style={{ fontSize: "18px", color: "#52c41a" }} />
@@ -132,7 +132,7 @@ const UserContribution: React.FC = () => {
       key: "status1Count",
       width: 150,
       sorter: (a: TopContributor, b: TopContributor) =>
-        a.status1Count - b.status1Count,
+        (a.status1Count || 0) - (b.status1Count || 0),
       render: (count: number | undefined) => (
         <div className="flex items-center gap-2">
           <CheckCircleOutlined style={{ fontSize: "18px", color: "#52c41a" }} />
@@ -180,7 +180,7 @@ const UserContribution: React.FC = () => {
               <Table
                 columns={columns}
                 dataSource={topContributors}
-                rowKey={(record) => record.userId || record.userEmail}
+                rowKey={(record) => (record.userId || record.userEmail) as string}
                 pagination={{
                   pageSize: 20,
                   responsive: true,

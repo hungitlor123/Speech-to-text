@@ -80,7 +80,7 @@ const ManageContribution: React.FC = () => {
       dataIndex: 'totalSentences',
       key: 'totalSentences',
       width: 200,
-      sorter: (a: TopContributor, b: TopContributor) => a.totalSentences - b.totalSentences,
+      sorter: (a: TopContributor, b: TopContributor) => (a.totalSentences || 0) - (b.totalSentences || 0),
       render: (count: number | undefined) => (
         <div className="flex items-center gap-2">
           <FileTextOutlined style={{ fontSize: '18px', color: '#52c41a' }} />
@@ -93,7 +93,7 @@ const ManageContribution: React.FC = () => {
       dataIndex: 'status1Count',
       key: 'status1Count',
       width: 150,
-      sorter: (a: TopContributor, b: TopContributor) => a.status1Count - b.status1Count,
+      sorter: (a: TopContributor, b: TopContributor) => (a.status1Count || 0) - (b.status1Count || 0),
       render: (count: number | undefined) => (
         <div className="flex items-center gap-2">
           <CheckCircleOutlined style={{ fontSize: '18px', color: '#52c41a' }} />
@@ -106,7 +106,7 @@ const ManageContribution: React.FC = () => {
       dataIndex: 'status3Count',
       key: 'status3Count',
       width: 150,
-      sorter: (a: TopContributor, b: TopContributor) => a.status3Count - b.status3Count,
+      sorter: (a: TopContributor, b: TopContributor) => (a.status3Count || 0) - (b.status3Count || 0),
       render: (count: number | undefined) => (
         <div className="flex items-center gap-2">
           <CloseCircleOutlined style={{ fontSize: '18px', color: '#f5222d' }} />
@@ -119,7 +119,7 @@ const ManageContribution: React.FC = () => {
       key: 'total',
       width: 200,
       sorter: (a: TopContributor, b: TopContributor) => 
-        (a.totalSentences) - (b.totalSentences),
+        (a.totalSentences || 0) - (b.totalSentences || 0),
       render: (_: unknown, record: TopContributor) => {
         const total = (record?.totalSentences || 0);
         return (
@@ -132,7 +132,7 @@ const ManageContribution: React.FC = () => {
     },
   ];
 
-  const totalSentences = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + c.totalSentences, 0) : 0;
+  const totalSentences = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.totalSentences || 0), 0) : 0;
   const approvedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status1Count || 0), 0) : 0;
   const rejectedCount = Array.isArray(topContributors) ? topContributors.reduce((sum, c) => sum + (c.status3Count || 0), 0) : 0;
   const pendingCount = Math.max(totalSentences - approvedCount - rejectedCount, 0);
@@ -250,7 +250,7 @@ const ManageContribution: React.FC = () => {
               <Table
                 columns={columns}
                 dataSource={topContributors}
-                rowKey={(record) => record.userId || record.userEmail}
+                rowKey={(record) => (record.userId || record.userEmail) as string}
                 pagination={{ 
                   pageSize: 20, 
                   responsive: true,
