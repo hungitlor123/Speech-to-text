@@ -48,6 +48,11 @@ const Dashboard: React.FC = () => {
   const totalRecorded = recordings.length; // Tổng số câu đã ghi âm
   const totalNotRecorded = totalSentences - totalRecorded; // Tổng số câu chưa ghi âm
   const totalApproved = recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length; // Đã duyệt
+  // Tổng thời lượng (giây) và giờ (từ các bản ghi nếu có trường duration hoặc tương tự)
+  const totalDurationSeconds = recordings.reduce((sum: number, r: any) => {
+    return sum + (r.duration || r.Duration || r.TotalRecordingDuration || r.totalDurationSeconds || 0);
+  }, 0);
+  const totalDurationHours = totalDurationSeconds / 3600;
 
   // Dữ liệu cho biểu đồ cột
   const barChartData = [
@@ -197,6 +202,29 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center">
                         <TeamOutlined className="text-xl text-pink-600" />
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+                <Col xs={12} sm={12} md={4} lg={4}>
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-indigo-100 hover:shadow-md transition-shadow flex items-center justify-between">
+                      <div>
+                        <Text className="text-xs text-gray-500 font-medium block mb-1">Tổng thời gian (s)</Text>
+                        <Text className="text-xl font-bold text-indigo-700">{totalDurationSeconds.toFixed ? totalDurationSeconds.toFixed(0) : totalDurationSeconds}s</Text>
+                      </div>
+                      <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+                        <ClockCircleOutlined className="text-lg text-indigo-600" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-indigo-50 hover:shadow-md transition-shadow flex items-center justify-between">
+                      <div>
+                        <Text className="text-xs text-gray-500 font-medium block mb-1">Tổng thời gian (h)</Text>
+                        <Text className="text-xl font-bold text-gray-800">{totalDurationHours.toFixed(2)}h</Text>
+                      </div>
+                      <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
+                        <ClockCircleOutlined className="text-lg text-gray-700" />
                       </div>
                     </div>
                   </div>
