@@ -1,56 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select } from 'antd';
 import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { getRecordings, getRecordingsByStatus, getSentences, approveRecording, rejectRecording, Recording, Sentence } from '@/services/features/recordingSlice';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers } from '@/services/features/userSlice';
-import { AppDispatch, RootState } from '@/services/store/store';
+import { getRecordingsWithMeta, approveRecording, rejectRecording, Recording } from '@/services/features/recordingSlice';
 import SidebarManager from '@/components/SidebarManager';
 
 const { Title, Text } = Typography;
 
 const ManagerRecords: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { users } = useSelector((state: RootState) => state.user);
   const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [sentences, setSentences] = useState<Sentence[]>([]);
   const [loadingRecordings, setLoadingRecordings] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecordingsCount, setTotalRecordingsCount] = useState(0);
+  const [approvedCountFromApi, setApprovedCountFromApi] = useState<number | null>(null);
+  const [pendingCountFromApi, setPendingCountFromApi] = useState<number | null>(null);
+  const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchRecordings();
-    fetchSentences();
-    dispatch(fetchUsers());
-  }, [dispatch]);
+    fetchRecordings(page, pageSize);
+  }, [page, pageSize]);
 
   useEffect(() => {
-    fetchRecordings(recordingStatusFilter);
-  }, [recordingStatusFilter]);
+    setPage(1); // Reset về trang 1 khi filter thay đổi
+    fetchRecordings(1, pageSize, recordingStatusFilter);
+  }, [recordingStatusFilter, pageSize]);
 
-  const fetchRecordings = async (status?: number | null) => {
+  const fetchRecordings = async (pageParam: number, limitParam: number, status?: number | null) => {
     setLoadingRecordings(true);
     try {
-      let data;
-      if (status !== null && status !== undefined) {
-        data = await getRecordingsByStatus(status);
-      } else {
-        data = await getRecordings();
+      const res = await getRecordingsWithMeta({ page: pageParam, limit: limitParam });
+      setRecordings(res.data);
+      setTotalRecordingsCount(res.totalCount ?? res.data.length);
+      
+      // Lấy meta từ API response
+      const resAny = res as { approvedCount?: number; pendingCount?: number; rejectedCount?: number };
+      if (typeof resAny.approvedCount === 'number') {
+        setApprovedCountFromApi(resAny.approvedCount);
       }
-      setRecordings(data);
+      if (typeof resAny.pendingCount === 'number') {
+        setPendingCountFromApi(resAny.pendingCount);
+      }
+      if (typeof resAny.rejectedCount === 'number') {
+        setRejectedCountFromApi(resAny.rejectedCount);
+      }
+      
+      // Nếu có filter status, filter ở client-side (hoặc có thể gọi API khác nếu backend hỗ trợ)
+      if (status !== null && status !== undefined) {
+        const filtered = res.data.filter((r) => {
+          const rStatus = typeof r.IsApproved === 'number' ? r.IsApproved : (r.IsApproved ? 1 : 0);
+          return rStatus === status;
+        });
+        setRecordings(filtered);
+      }
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
     } finally {
       setLoadingRecordings(false);
-    }
-  };
-
-  const fetchSentences = async () => {
-    try {
-      const data = await getSentences();
-      setSentences(data);
-    } catch (error) {
-      console.error('Failed to fetch sentences:', error);
     }
   };
 
@@ -70,7 +77,7 @@ const ManagerRecords: React.FC = () => {
   const handleApproveRecording = async (recordingId: string) => {
     try {
       await approveRecording(recordingId);
-      fetchRecordings(recordingStatusFilter);
+      fetchRecordings(page, pageSize, recordingStatusFilter);
     } catch (error) {
       console.error('Failed to approve recording:', error);
     }
@@ -79,7 +86,7 @@ const ManagerRecords: React.FC = () => {
   const handleRejectRecording = async (recordingId: string) => {
     try {
       await rejectRecording(recordingId);
-      fetchRecordings(recordingStatusFilter);
+      fetchRecordings(page, pageSize, recordingStatusFilter);
     } catch (error) {
       console.error('Failed to reject recording:', error);
     }
@@ -88,22 +95,20 @@ const ManagerRecords: React.FC = () => {
   const recordingColumns = [
     {
       title: 'Email',
-      dataIndex: 'PersonID',
-      key: 'PersonID',
+      dataIndex: 'Email',
+      key: 'Email',
       width: 200,
-      render: (personId: string) => {
-        const user = users.find(u => u.PersonID === personId);
-        return <span className="font-medium text-gray-900">{user?.Email || 'Unknown'}</span>;
+      render: (email: string | null | undefined) => {
+        return <span className="font-medium text-gray-900">{email || 'Ẩn danh'}</span>;
       },
     },
     {
       title: 'Nội dung câu',
-      dataIndex: 'SentenceID',
-      key: 'SentenceID',
+      dataIndex: 'Content',
+      key: 'Content',
       width: 300,
-      render: (sentenceId: string) => {
-        const sentence = sentences.find(s => s.SentenceID === sentenceId);
-        return <span className="text-gray-900">{sentence?.Content || 'Unknown'}</span>;
+      render: (content: string | null | undefined) => {
+        return <span className="text-gray-900">{content || 'Unknown'}</span>;
       },
     },
 
@@ -166,10 +171,20 @@ const ManagerRecords: React.FC = () => {
     },
   ];
 
-  const approvedCount = recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length;
-  const totalRecorded = recordings.length;
-  const pendingRecordings = recordings.filter((r) => r.IsApproved === 0 || r.IsApproved === false || r.IsApproved === null).length;
-  const rejectedCount = recordings.filter((r) => r.IsApproved === 2).length;
+  // Thống kê từ API meta (ưu tiên) hoặc tính từ mảng recordings (fallback)
+  const totalRecorded = totalRecordingsCount || recordings.length;
+  const approvedCount =
+    approvedCountFromApi !== null
+      ? approvedCountFromApi
+      : recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length;
+  const pendingRecordings =
+    pendingCountFromApi !== null
+      ? pendingCountFromApi
+      : recordings.filter((r) => r.IsApproved === 0 || r.IsApproved === false || r.IsApproved === null).length;
+  const rejectedCount =
+    rejectedCountFromApi !== null
+      ? rejectedCountFromApi
+      : recordings.filter((r) => r.IsApproved === 2).length;
 
   return (
     <div className="flex">
@@ -283,7 +298,18 @@ const ManagerRecords: React.FC = () => {
                   columns={recordingColumns}
                   dataSource={recordings}
                   rowKey="RecordingID"
-                  pagination={{ pageSize: 10, responsive: true }}
+                  pagination={{
+                    current: page,
+                    pageSize,
+                    total: totalRecordingsCount,
+                    pageSizeOptions: [10, 20, 50, 100],
+                    showSizeChanger: true,
+                    responsive: true,
+                    onChange: (p, size) => {
+                      setPage(p);
+                      setPageSize(size);
+                    },
+                  }}
                   scroll={{ x: 800 }}
                 />
               ) : (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal } from 'antd';
+import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination } from 'antd';
 import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined } from '@ant-design/icons';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,15 +12,30 @@ const { Title, Text } = Typography;
 
 const ManagerUsers: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { users, usersLoading, deletingUser } = useSelector((state: RootState) => state.user);
+  const {
+    users,
+    usersLoading,
+    deletingUser,
+    usersTotal,
+    usersPage,
+    usersLimit,
+    usersTotalMale,
+    usersTotalFemale,
+    usersTotalContributedSentences,
+    usersTotalCompletedSentences,
+  } = useSelector((state: RootState) => state.user);
   const [topRecorders, setTopRecorders] = useState<TopRecorder[]>([]);
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
-  const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string }>>([]);
+  const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>>([]);
   const [selectedUserEmail, setSelectedUserEmail] = useState('');
+  const [sentencesModalPage, setSentencesModalPage] = useState(1);
+  const [sentencesModalPageSize] = useState(10);
   const [contributedSentencesModalVisible, setContributedSentencesModalVisible] = useState(false);
   const [selectedUserContributedSentences, setSelectedUserContributedSentences] = useState<Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>>([]);
   const [selectedContributorEmail, setSelectedContributorEmail] = useState('');
+  const [contributedSentencesModalPage, setContributedSentencesModalPage] = useState(1);
+  const [contributedSentencesModalPageSize] = useState(10);
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -48,22 +63,24 @@ const ManagerUsers: React.FC = () => {
     }
   };
 
-  const handleShowSentences = (userEmail: string, sentences?: Array<{ SentenceID: string; Content: string }>) => {
+  const handleShowSentences = (userEmail: string, sentences?: Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>) => {
     setSelectedUserEmail(userEmail);
     setSelectedUserSentences(sentences || []);
+    setSentencesModalPage(1); // Reset về trang 1 khi mở modal
     setSentencesModalVisible(true);
   };
 
   const handleShowContributedSentences = (userEmail: string, sentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>) => {
     setSelectedContributorEmail(userEmail);
     setSelectedUserContributedSentences(sentences || []);
+    setContributedSentencesModalPage(1); // Reset về trang 1 khi mở modal
     setContributedSentencesModalVisible(true);
   };
 
   const columns = [
     {
       title: 'STT',
-        width: 60,
+      width: 60,
       key: 'stt',
       render: (_: any, __: any, index: number) => (
         <span className="font-medium text-gray-900">{index + 1}</span>
@@ -96,10 +113,10 @@ const ManagerUsers: React.FC = () => {
       align: 'center' as const,
       sorter: (a: any, b: any) => (a.TotalSentencesDone || 0) - (b.TotalSentencesDone || 0),
       render: (total: number, record: any) => (
-        <Tag 
-          color="blue" 
+        <Tag
+          color="blue"
           className="font-medium cursor-pointer hover:opacity-80"
-              onClick={() => handleShowSentences(record.Email, record.SentencesDone)}
+          onClick={() => handleShowSentences(record.Email, record.SentencesDone)}
         >
           {total || 0} câu
         </Tag>
@@ -126,10 +143,10 @@ const ManagerUsers: React.FC = () => {
       align: 'center' as const,
       sorter: (a: any, b: any) => (a.TotalContributedByUser || 0) - (b.TotalContributedByUser || 0),
       render: (total: number, record: any) => (
-        <Tag 
-          color="purple" 
+        <Tag
+          color="purple"
           className="font-medium cursor-pointer hover:opacity-80"
-              onClick={() => handleShowContributedSentences(record.Email, record.CreatedSentences)}
+          onClick={() => handleShowContributedSentences(record.Email, record.CreatedSentences)}
         >
           {total || 0} câu
         </Tag>
@@ -174,11 +191,12 @@ const ManagerUsers: React.FC = () => {
     },
   ];
 
-  const totalUsers = users.length;
-  const maleCount = users.filter((u) => u.Gender === 'Male').length;
-  const femaleCount = users.filter((u) => u.Gender === 'Female').length;
-  const totalSentencesDone = users.reduce((sum, u) => sum + (u.TotalSentencesDone || 0), 0);
-  const totalContributedByUsers = users.reduce((sum, u) => sum + (u.TotalContributedByUser || 0), 0);
+  // Thống kê từ API meta (ưu tiên) hoặc tính từ mảng users (fallback)
+  const totalUsers = usersTotal || users.length;
+  const maleCount = usersTotalMale || users.filter((u) => u.Gender === 'Male').length;
+  const femaleCount = usersTotalFemale || users.filter((u) => u.Gender === 'Female').length;
+  const totalSentencesDone = usersTotalCompletedSentences || users.reduce((sum, u) => sum + (u.TotalSentencesDone || 0), 0);
+  const totalContributedByUsers = usersTotalContributedSentences || users.reduce((sum, u) => sum + (u.TotalContributedByUser || 0), 0);
 
   return (
     <div className="flex">
@@ -291,7 +309,17 @@ const ManagerUsers: React.FC = () => {
                   columns={columns}
                   dataSource={users}
                   rowKey="PersonID"
-                  pagination={{ pageSize: 10, responsive: true }}
+                  pagination={{
+                    current: usersPage,
+                    pageSize: usersLimit,
+                    total: usersTotal,
+                    pageSizeOptions: [10, 20, 50, 100],
+                    showSizeChanger: true,
+                    responsive: true,
+                    onChange: (page, pageSize) => {
+                      dispatch(fetchUsers({ page, limit: pageSize }));
+                    },
+                  }}
                   scroll={{ x: 800 }}
                 />
               ) : (
@@ -405,33 +433,76 @@ const ManagerUsers: React.FC = () => {
       <Modal
         title={`Danh sách câu đã làm - ${selectedUserEmail}`}
         open={sentencesModalVisible}
-        onCancel={() => setSentencesModalVisible(false)}
+        onCancel={() => {
+          setSentencesModalVisible(false);
+          setSentencesModalPage(1);
+        }}
         footer={[
-          <Button key="close" onClick={() => setSentencesModalVisible(false)}>
+          <Button key="close" onClick={() => {
+            setSentencesModalVisible(false);
+            setSentencesModalPage(1);
+          }}>
             Đóng
           </Button>
         ]}
         width={800}
       >
         {selectedUserSentences.length > 0 ? (
-          <div className="space-y-3">
-            {selectedUserSentences.map((sentence, index) => (
-              <div 
-                key={sentence.SentenceID} 
-                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
+          <>
+            <div className="space-y-3">
+              {selectedUserSentences
+                .slice((sentencesModalPage - 1) * sentencesModalPageSize, sentencesModalPage * sentencesModalPageSize)
+                .map((sentence, index) => (
+                  <div
+                    key={sentence.SentenceID}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold text-sm">{(sentencesModalPage - 1) * sentencesModalPageSize + index + 1}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-900 font-medium mb-2">{sentence.Content}</p>
+                        <div className="space-y-2">
+                          {sentence.RecordedAt && (
+                            <p className="text-xs text-gray-400">
+                              Ghi âm: {new Date(sentence.RecordedAt).toLocaleString('vi-VN')}
+                            </p>
+                          )}
+                          {sentence.Duration && (
+                            <p className="text-xs text-gray-400">
+                              Thời lượng: {sentence.Duration.toFixed(2)}s
+                            </p>
+                          )}
+                          {sentence.AudioUrl && (
+                            <div className="mt-2">
+                              <audio controls className="w-full" style={{ maxWidth: '100%' }}>
+                                <source src={sentence.AudioUrl} type="audio/webm" />
+                                <source src={sentence.AudioUrl} type="audio/mpeg" />
+                                <source src={sentence.AudioUrl} type="audio/wav" />
+                                Trình duyệt của bạn không hỗ trợ phát audio.
+                              </audio>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-gray-900 font-medium mb-1">{sentence.Content}</p>
-                    <p className="text-xs text-gray-500">ID: {sentence.SentenceID}</p>
-                  </div>
-                </div>
+                ))}
+            </div>
+            {selectedUserSentences.length > sentencesModalPageSize && (
+              <div className="mt-4 flex justify-center">
+                <Pagination
+                  current={sentencesModalPage}
+                  pageSize={sentencesModalPageSize}
+                  total={selectedUserSentences.length}
+                  onChange={(page) => setSentencesModalPage(page)}
+                  showSizeChanger={false}
+                  showQuickJumper={false}
+                />
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <Empty description="Chưa có câu nào được hoàn thành" />
         )}
@@ -441,41 +512,62 @@ const ManagerUsers: React.FC = () => {
       <Modal
         title={`Danh sách câu đóng góp - ${selectedContributorEmail}`}
         open={contributedSentencesModalVisible}
-        onCancel={() => setContributedSentencesModalVisible(false)}
+        onCancel={() => {
+          setContributedSentencesModalVisible(false);
+          setContributedSentencesModalPage(1);
+        }}
         footer={[
-          <Button key="close" onClick={() => setContributedSentencesModalVisible(false)}>
+          <Button key="close" onClick={() => {
+            setContributedSentencesModalVisible(false);
+            setContributedSentencesModalPage(1);
+          }}>
             Đóng
           </Button>
         ]}
         width={800}
       >
         {selectedUserContributedSentences.length > 0 ? (
-          <div className="space-y-3">
-            {selectedUserContributedSentences.map((sentence, index) => (
-              <div 
-                key={sentence.SentenceID} 
-                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <span className="text-purple-600 font-semibold text-sm">{index + 1}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-gray-900 font-medium mb-1">{sentence.Content}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <p className="text-xs text-gray-500">ID: {sentence.SentenceID}</p>
-                      <Tag color={sentence.Status === 1 ? 'green' : sentence.Status === 2 ? 'red' : 'blue'} className="text-xs">
-                        {sentence.Status === 1 ? 'Đã duyệt' : sentence.Status === 2 ? 'Từ chối' : 'Chờ duyệt'}
-                      </Tag>
-                      <span className="text-xs text-gray-400">
-                        {new Date(sentence.CreatedAt).toLocaleDateString('vi-VN')}
-                      </span>
+          <>
+            <div className="space-y-3">
+              {selectedUserContributedSentences
+                .slice((contributedSentencesModalPage - 1) * contributedSentencesModalPageSize, contributedSentencesModalPage * contributedSentencesModalPageSize)
+                .map((sentence, index) => (
+                  <div
+                    key={sentence.SentenceID}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-purple-600 font-semibold text-sm">{(contributedSentencesModalPage - 1) * contributedSentencesModalPageSize + index + 1}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-900 font-medium mb-1">{sentence.Content}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Tag color={sentence.Status === 1 ? 'green' : sentence.Status === 2 ? 'red' : 'blue'} className="text-xs">
+                            {sentence.Status === 1 ? 'Đã duyệt' : sentence.Status === 2 ? 'Từ chối' : 'Chờ duyệt'}
+                          </Tag>
+                          <span className="text-xs text-gray-400">
+                            {new Date(sentence.CreatedAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
+            </div>
+            {selectedUserContributedSentences.length > contributedSentencesModalPageSize && (
+              <div className="mt-4 flex justify-center">
+                <Pagination
+                  current={contributedSentencesModalPage}
+                  pageSize={contributedSentencesModalPageSize}
+                  total={selectedUserContributedSentences.length}
+                  onChange={(page) => setContributedSentencesModalPage(page)}
+                  showSizeChanger={false}
+                  showQuickJumper={false}
+                />
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <Empty description="Chưa có câu nào được đóng góp" />
         )}

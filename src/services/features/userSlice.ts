@@ -29,6 +29,9 @@ export interface User {
   SentencesDone?: Array<{
     SentenceID: string;
     Content: string;
+    AudioUrl?: string;
+    Duration?: number;
+    RecordedAt?: string;
   }>;
   TotalRecordingDuration?: number;
   TotalSentencesDone?: number;
@@ -84,6 +87,14 @@ interface UserState {
   isRecording: boolean;
   recordingTime: number;
   users: User[];
+  usersTotal: number;
+  usersPage: number;
+  usersLimit: number;
+  usersTotalPages: number;
+  usersTotalContributedSentences: number;
+  usersTotalMale: number;
+  usersTotalFemale: number;
+  usersTotalCompletedSentences: number;
   usersLoading: boolean;
   usersError: string | null;
   creatingUser: boolean;
@@ -104,6 +115,14 @@ const initialState: UserState = {
   isRecording: false,
   recordingTime: 0,
   users: [],
+  usersTotal: 0,
+  usersPage: 1,
+  usersLimit: 10,
+  usersTotalPages: 0,
+  usersTotalContributedSentences: 0,
+  usersTotalMale: 0,
+  usersTotalFemale: 0,
+  usersTotalCompletedSentences: 0,
   usersLoading: false,
   usersError: null,
   creatingUser: false,
@@ -114,10 +133,98 @@ const initialState: UserState = {
   sentencesError: null,
 };
 
-// Async thunk to fetch users
-export const fetchUsers = createAsyncThunk("user/fetchUsers", async () => {
-  const response = await axiosInstance.get("users");
-  return response.data;
+// Async thunk to fetch users with pagination
+export interface FetchUsersParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface FetchUsersResponse {
+  users: User[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+  totalContributedSentences: number;
+  totalMale: number;
+  totalFemale: number;
+  totalCompletedSentences: number;
+}
+
+export const fetchUsers = createAsyncThunk<
+  FetchUsersResponse,
+  FetchUsersParams | undefined
+>("user/fetchUsers", async (params) => {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 10;
+
+  const response = await axiosInstance.get("users", {
+    params: { page, limit },
+  });
+  const data = response.data;
+
+  const rawDataArray: unknown[] = Array.isArray(data)
+    ? data
+    : (data && Array.isArray((data as { data?: unknown[] }).data)
+        ? (data as { data: unknown[] }).data
+        : []);
+
+  // Map API fields to User interface fields
+  const items: User[] = rawDataArray.map((item: unknown) => {
+    const rawItem = item as {
+      PersonID?: string;
+      Email?: string;
+      Gender?: string;
+      Role?: string;
+      CreatedAt?: string;
+      TotalRecordings?: number;
+      TotalRecordingDuration?: number;
+      TotalSentenceContributions?: number;
+      Recordings?: Array<{ SentenceID: string; Content: string; Duration?: number; RecordedAt?: string; AudioUrl?: string }>;
+      SentenceContributions?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>;
+      SentencesDone?: Array<{ SentenceID: string; Content: string }>;
+      CreatedSentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>;
+    };
+    return {
+      PersonID: rawItem.PersonID ?? '',
+      Email: rawItem.Email ?? '',
+      Gender: rawItem.Gender ?? '',
+      Role: rawItem.Role,
+      CreatedAt: rawItem.CreatedAt ?? '',
+      TotalRecordingDuration: rawItem.TotalRecordingDuration,
+      TotalSentencesDone: rawItem.TotalRecordings, // Map TotalRecordings -> TotalSentencesDone
+      TotalContributedByUser: rawItem.TotalSentenceContributions, // Map TotalSentenceContributions -> TotalContributedByUser
+      // Map Recordings -> SentencesDone (câu đã làm/đã ghi âm)
+      SentencesDone: rawItem.Recordings?.map((r) => ({
+        SentenceID: r.SentenceID,
+        Content: r.Content,
+        AudioUrl: r.AudioUrl,
+        Duration: r.Duration,
+        RecordedAt: r.RecordedAt,
+      })) ?? rawItem.SentencesDone ?? [],
+      // Map SentenceContributions -> CreatedSentences (câu đóng góp)
+      CreatedSentences: rawItem.SentenceContributions?.map((s) => ({
+        SentenceID: s.SentenceID,
+        Content: s.Content,
+        Status: s.Status,
+        CreatedAt: s.CreatedAt,
+      })) ?? rawItem.CreatedSentences ?? [],
+    };
+  });
+
+  return {
+    users: items,
+    totalCount: (data as { totalCount?: number })?.totalCount ?? items.length,
+    totalPages: (data as { totalPages?: number })?.totalPages ?? 1,
+    currentPage: (data as { currentPage?: number })?.currentPage ?? page,
+    limit: (data as { limit?: number })?.limit ?? limit,
+    totalContributedSentences:
+      (data as { totalContributedSentences?: number })?.totalContributedSentences ?? 0,
+    totalMale: (data as { totalMale?: number })?.totalMale ?? 0,
+    totalFemale: (data as { totalFemale?: number })?.totalFemale ?? 0,
+    totalCompletedSentences:
+      (data as { totalCompletedSentences?: number })?.totalCompletedSentences ?? 0,
+  };
 });
 
 // Async thunk to create user
@@ -159,30 +266,32 @@ export const fetchTopContributors = createAsyncThunk(
     // - TotalContributedByUser <- TotalContributedByUser
     // - TotalContributedApproved <- TotalContributedApproved
     const response = await axiosInstance.get("users");
-    const payload = response.data;
+    const payload: { data?: TopContributor[] } | TopContributor[] = response.data;
 
     // Normalize to an array of items
-    const items = Array.isArray(payload) ? payload : (payload && Array.isArray((payload as any).data) ? (payload as any).data : []);
+    const items: TopContributor[] = Array.isArray(payload)
+      ? payload
+      : (payload && Array.isArray(payload.data) ? payload.data : []);
 
-    return items.map((item: any) => ({
-      PersonID: item.PersonID ?? item.personId ?? null,
-      Email: item.Email ?? item.email ?? undefined,
-      userEmail: item.Email ?? item.email ?? item.UserEmail ?? "Ẩn danh",
-      userId: item.PersonID ?? item.personId ?? null,
+    return items.map((item) => ({
+      PersonID: item.PersonID ?? undefined,
+      Email: item.Email ?? undefined,
+      userEmail: item.Email ?? item.userEmail ?? "Ẩn danh",
+      userId: item.PersonID ?? item.userId ?? null,
       // Map API fields to the UI columns:
       // - RecordingTotalCount (Số câu ghi âm) <- TotalSentencesDone
       // - totalSentences (Số câu đóng góp) <- TotalContributedByUser
       // - status1Count (Đã duyệt) <- TotalContributedApproved
-      RecordingTotalCount: Number(item.TotalSentencesDone ?? item.TotalSentences ?? 0),
-      totalSentences: Number(item.TotalContributedByUser ?? item.TotalContributedByUser ?? 0),
-      TotalSentencesDone: Number(item.TotalSentencesDone ?? item.TotalSentences ?? 0),
+      RecordingTotalCount: Number(item.TotalSentencesDone ?? item.totalSentences ?? 0),
+      totalSentences: Number(item.TotalContributedByUser ?? item.totalSentences ?? 0),
+      TotalSentencesDone: Number(item.TotalSentencesDone ?? item.totalSentences ?? 0),
       TotalContributedByUser: Number(item.TotalContributedByUser ?? 0),
       TotalContributedApproved: Number(item.TotalContributedApproved ?? 0),
       status1Count: Number(item.TotalContributedApproved ?? item.status1Count ?? 0),
       status2Count: Number(item.status2Count ?? 0),
       status3Count: Number(item.status3Count ?? 0),
-      createdAt: item.CreatedAt ?? item.createdAt ?? null,
-      RecordedSentences: item.RecordedSentences ?? item.recordedSentences,
+      createdAt: item.createdAt ?? null,
+      RecordedSentences: item.RecordedSentences ?? item.RecordedSentences,
     }));
   }
 );
@@ -293,7 +402,15 @@ const userSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.usersLoading = false;
-        state.users = Array.isArray(action.payload) ? action.payload : (action.payload?.data || []);
+        state.users = action.payload.users;
+        state.usersTotal = action.payload.totalCount;
+        state.usersPage = action.payload.currentPage;
+        state.usersLimit = action.payload.limit;
+        state.usersTotalPages = action.payload.totalPages;
+        state.usersTotalContributedSentences = action.payload.totalContributedSentences;
+        state.usersTotalMale = action.payload.totalMale;
+        state.usersTotalFemale = action.payload.totalFemale;
+        state.usersTotalCompletedSentences = action.payload.totalCompletedSentences;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.usersLoading = false;

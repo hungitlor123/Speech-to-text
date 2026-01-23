@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Trophy,
 } from 'lucide-react';
 
 const { Sider } = Layout;
@@ -17,7 +16,6 @@ const SidebarUser = () => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Quản lý', path: '/user/profile' },
-    { icon: Trophy, label: 'Top Đóng Góp', path: '/user/contributions' },
   ];
 
   return (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Modal, Form, Input, message, Popconfirm, Row, Col, Tag, Select } from 'antd';
 import { FileTextOutlined, CheckCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined, DownloadOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
-import { getSentences, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, downloadSentences, Sentence } from '@/services/features/recordingSlice';
+import { getSentencesWithMeta, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, downloadSentences, Sentence } from '@/services/features/recordingSlice';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -14,17 +14,40 @@ const ManagerSentences: React.FC = () => {
   const [editingSentence, setEditingSentence] = useState<Sentence | null>(null);
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalSentencesCount, setTotalSentencesCount] = useState(0);
+  const [approvedCountFromApi, setApprovedCountFromApi] = useState<number | null>(null);
+  const [pendingCountFromApi, setPendingCountFromApi] = useState<number | null>(null);
+  const [recordedCountFromApi, setRecordedCountFromApi] = useState<number | null>(null);
+  const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
-    fetchSentences();
-  }, []);
+    fetchSentences(page, pageSize);
+  }, [page, pageSize]);
 
-  const fetchSentences = async () => {
+  const fetchSentences = async (pageParam: number, limitParam: number) => {
     setLoadingSentences(true);
     try {
-      const data = await getSentences();
-      setSentences(data);
+      const res = await getSentencesWithMeta({ page: pageParam, limit: limitParam });
+      setSentences(res.data);
+      setTotalSentencesCount(res.totalCount ?? res.data.length);
+
+      // Lấy meta từ API response
+      const resAny = res as { approvedCount?: number; pendingCount?: number; recordedCount?: number; rejectedCount?: number };
+      if (typeof resAny.approvedCount === 'number') {
+        setApprovedCountFromApi(resAny.approvedCount);
+      }
+      if (typeof resAny.pendingCount === 'number') {
+        setPendingCountFromApi(resAny.pendingCount);
+      }
+      if (typeof resAny.recordedCount === 'number') {
+        setRecordedCountFromApi(resAny.recordedCount);
+      }
+      if (typeof resAny.rejectedCount === 'number') {
+        setRejectedCountFromApi(resAny.rejectedCount);
+      }
     } catch (error) {
       console.error('Failed to fetch sentences:', error);
       message.error('Không thể tải danh sách câu');
@@ -49,7 +72,7 @@ const ManagerSentences: React.FC = () => {
     try {
       await deleteSentence(sentenceId);
       message.success('Xóa câu thành công');
-      fetchSentences();
+      fetchSentences(page, pageSize);
     } catch (error) {
       console.error('Failed to delete sentence:', error);
       message.error('Xóa câu thất bại');
@@ -60,7 +83,7 @@ const ManagerSentences: React.FC = () => {
     try {
       await approveSentence(sentenceId);
       message.success('Duyệt câu thành công');
-      fetchSentences();
+      fetchSentences(page, pageSize);
     } catch (error) {
       console.error('Failed to approve sentence:', error);
       message.error('Duyệt câu thất bại');
@@ -71,7 +94,7 @@ const ManagerSentences: React.FC = () => {
     try {
       await rejectSentence(sentenceId);
       message.success('Từ chối câu thành công');
-      fetchSentences();
+      fetchSentences(page, pageSize);
     } catch (error) {
       console.error('Failed to reject sentence:', error);
       message.error('Từ chối câu thất bại');
@@ -134,11 +157,11 @@ const ManagerSentences: React.FC = () => {
         message.success('Cập nhật câu thành công');
       } else {
         await createSentence(values.content);
-        message.success('Tạo câu mới thành công');
+      message.success('Tạo câu mới thành công');
       }
       setIsModalVisible(false);
       form.resetFields();
-      fetchSentences();
+      fetchSentences(page, pageSize);
     } catch (error: any) {
       console.error('Full error object:', error);
       
@@ -273,11 +296,24 @@ const ManagerSentences: React.FC = () => {
     },
   ];
 
-  const totalSentences = sentences.length;
-  const pendingSentences = sentences.filter((s) => s.Status === 0).length;
-  const approvedSentences = sentences.filter((s) => s.Status === 1).length;
-  const recordedSentences = sentences.filter((s) => s.Status === 2).length;
-  const rejectedSentences = sentences.filter((s) => s.Status === 3).length;
+  // Thống kê từ API meta (ưu tiên) hoặc tính từ mảng sentences (fallback)
+  const totalSentences = totalSentencesCount || sentences.length;
+  const approvedSentences =
+    approvedCountFromApi !== null
+      ? approvedCountFromApi
+      : sentences.filter((s) => s.Status === 1).length;
+  const pendingSentences =
+    pendingCountFromApi !== null
+      ? pendingCountFromApi
+      : sentences.filter((s) => s.Status === 0).length;
+  const recordedSentences =
+    recordedCountFromApi !== null
+      ? recordedCountFromApi
+      : sentences.filter((s) => s.Status === 2).length;
+  const rejectedSentences =
+    rejectedCountFromApi !== null
+      ? rejectedCountFromApi
+      : sentences.filter((s) => s.Status === 3).length;
 
   return (
     <div className="flex">
@@ -426,7 +462,18 @@ const ManagerSentences: React.FC = () => {
                   columns={sentenceColumns}
                   dataSource={statusFilter !== null ? sentences.filter(s => s.Status === statusFilter) : sentences}
                   rowKey="SentenceID"
-                  pagination={{ pageSize: 10, responsive: true }}
+                  pagination={{
+                    current: page,
+                    pageSize,
+                    total: totalSentencesCount,
+                    pageSizeOptions: [10, 20, 50, 100],
+                    showSizeChanger: true,
+                    responsive: true,
+                    onChange: (p, size) => {
+                      setPage(p);
+                      setPageSize(size);
+                    },
+                  }}
                   scroll={{ x: 800 }}
                 />
               ) : (
