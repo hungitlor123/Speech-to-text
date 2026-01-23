@@ -9,12 +9,21 @@ interface AudioWaveformProps {
     onPause: () => void;
 }
 
+// Helper function to detect mobile devices
+const isMobileDevice = (): boolean => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    ) || 
+    (window.matchMedia && window.matchMedia("(max-width: 768px)").matches);
+};
+
 const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPlay, onPause }) => {
     const waveformRef = useRef<HTMLDivElement>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
     const [duration, setDuration] = useState<number>(0);
     const [currentTime, setCurrentTime] = useState<number>(0);
     const [internalPlaying, setInternalPlaying] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const onPlayRef = useRef(onPlay);
     const onPauseRef = useRef(onPause);
 
@@ -30,9 +39,14 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
         let isMounted = true;
         let wavesurfer: WaveSurfer | null = null;
         const abortController = new AbortController();
+        setLoadError(null);
 
         // Create WaveSurfer instance
         try {
+            const isMobile = isMobileDevice();
+            
+            // Use WebAudio backend for mobile devices as it's more reliable with blob URLs
+            // For desktop, try WebAudio first, fallback to MediaElement if needed
             wavesurfer = WaveSurfer.create({
                 container: waveformRef.current,
                 waveColor: '#93c5fd',
@@ -45,7 +59,9 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
                 normalize: true,
                 interact: true,
                 dragToSeek: true,
-                backend: 'MediaElement', // Use MediaElement for better blob URL support
+                backend: isMobile ? 'WebAudio' : 'WebAudio', // Use WebAudio for better mobile support
+                mediaControls: false, // Disable native controls for better mobile experience
+                autoplay: false,
             });
 
             wavesurferRef.current = wavesurfer;
@@ -53,8 +69,14 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
             // Event listeners
             const handleReady = () => {
                 if (isMounted && wavesurfer) {
-                    const duration = wavesurfer.getDuration();
-                    setDuration(duration);
+                    try {
+                        const duration = wavesurfer.getDuration();
+                        if (duration && duration > 0) {
+                            setDuration(duration);
+                        }
+                    } catch (e) {
+                        console.warn("Error getting duration:", e);
+                    }
                 }
             };
 
@@ -75,7 +97,7 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
             const handleFinish = () => {
                 if (isMounted) {
                     setInternalPlaying(false);
-                    onPause();
+                    onPauseRef.current();
                 }
             };
 
@@ -85,10 +107,11 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
                 }
             };
 
-            const handleError = () => {
-                // Ignore abort errors (component unmounted during load)
-                // These are expected and harmless
-                // Silently ignore expected errors
+            const handleError = (error: any) => {
+                if (isMounted) {
+                    console.error("WaveSurfer error:", error);
+                    setLoadError("Không thể tải audio. Vui lòng thử lại.");
+                }
             };
 
             // Remove any existing listeners first to avoid duplicates
@@ -103,7 +126,7 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
             wavesurfer.on('error', handleError);
 
             // Load audio with error handling
-            // For MediaElement backend, use regular load() which works well with blob URLs
+            // WebAudio backend works well with blob URLs on mobile
             const loadPromise = wavesurfer.load(audioUrl);
 
             // Handle abort signal
@@ -119,13 +142,17 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
                 }
             });
 
-            loadPromise.catch(() => {
-                // Ignore abort errors (component unmounted during load)
-                // These are expected and harmless
-                // Silently ignore expected errors
+            loadPromise.catch((error) => {
+                if (isMounted && !abortController.signal.aborted) {
+                    console.error("Error loading audio:", error);
+                    setLoadError("Không thể tải audio. Vui lòng thử lại.");
+                }
             });
-        } catch {
-            // Silently handle initialization errors
+        } catch (error) {
+            console.error("Error initializing WaveSurfer:", error);
+            if (isMounted) {
+                setLoadError("Không thể khởi tạo trình phát audio. Vui lòng thử lại.");
+            }
         }
 
         // Cleanup
@@ -194,41 +221,70 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({ audioUrl, isPlaying, onPl
 
                         const wavesurfer = wavesurferRef.current;
 
-                        // Prevent multiple rapid clicks
-                        if (wavesurfer.isPlaying() === internalPlaying) {
-                            // State is already correct, just toggle
+                        try {
+                            // Prevent multiple rapid clicks
                             if (wavesurfer.isPlaying()) {
                                 wavesurfer.pause();
                             } else {
-                                const duration = wavesurfer.getDuration();
-
-                                if (duration > 0) {
-                                    try {
-                                        await wavesurfer.play();
-                                    } catch (playError) {
-                                        if (playError instanceof Error) {
-                                            alert(`Không thể phát audio: ${playError.message}`);
+                                // On mobile, try to resume AudioContext if available (best-effort, typed via any)
+                                if (isMobileDevice()) {
+                                    const anyWave = wavesurfer as any;
+                                    const backend = anyWave.backend;
+                                    const ac = backend && backend.ac;
+                                    if (ac && ac.state === 'suspended') {
+                                        try {
+                                            await ac.resume();
+                                        } catch {
+                                            // Ignore resume errors; playback will still be attempted
                                         }
                                     }
+                                }
+
+                                const currentDuration = wavesurfer.getDuration();
+                                if (currentDuration > 0) {
+                                    await wavesurfer.play();
                                 } else {
-                                    wavesurfer.once('ready', () => {
-                                        wavesurfer.play().catch(() => {
-                                            // Silently handle play errors
-                                        });
+                                    // Wait for ready event if duration not available yet
+                                    wavesurfer.once('ready', async () => {
+                                        try {
+                                            await wavesurfer.play();
+                                        } catch (playError) {
+                                            console.error("Play error:", playError);
+                                            setLoadError("Không thể phát audio. Vui lòng thử lại.");
+                                        }
                                     });
                                 }
                             }
+                        } catch (playError) {
+                            console.error("Play/pause error:", playError);
+                            const errorMsg = playError instanceof Error 
+                                ? playError.message 
+                                : "Không thể phát audio";
+                            setLoadError(errorMsg);
+                            
+                            // Try to show user-friendly error
+                            if (isMobileDevice()) {
+                                // Trên mobile, có thể cần thao tác người dùng thêm
+                                console.warn("Audio playback may require additional user interaction on mobile");
+                            }
                         }
                     }}
-                    className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl flex-shrink-0 transition-all duration-300 hover:scale-110 hover:shadow-lg active:scale-95 hover:bg-blue-700 shadow-md"
+                    disabled={!!loadError}
+                    className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl flex-shrink-0 transition-all duration-300 hover:scale-110 hover:shadow-lg active:scale-95 hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {internalPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
                 </button>
                 <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-700 mb-1">Nghe lại bản ghi</div>
-                    <div className="text-xs text-gray-500">
-                        {formatTime(currentTime)} / {formatTime(duration)}
+                    <div className="text-sm font-semibold text-gray-700 mb-1">
+                        {loadError ? 'Lỗi tải audio' : 'Nghe lại bản ghi'}
                     </div>
+                    {loadError ? (
+                        <div className="text-xs text-red-500">{loadError}</div>
+                    ) : (
+                        <div className="text-xs text-gray-500">
+                            {formatTime(currentTime)} / {formatTime(duration)}
+                        </div>
+                    )}
                 </div>
             </div>
             <div

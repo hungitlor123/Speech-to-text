@@ -9,12 +9,31 @@ export interface Sentence {
 
 export interface Recording {
   RecordingID: string;
-  PersonID: string;
+  PersonID: string | null;
   SentenceID: string;
   AudioUrl: string | null;
   IsApproved: number | boolean | null;
   RecordedAt: string;
   Status?: number;
+  Duration?: number;
+  Email?: string | null;
+  Content?: string | null;
+}
+
+// Generic paginated response (backend supports page & limit)
+export interface PaginatedResponse<T> {
+  count: number;
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  data: T[];
+  // Allow extra fields without strict typing
+  [key: string]: any;
+}
+
+export interface PaginatedParams {
+  page?: number;
+  limit?: number;
 }
 
 export const getSentences = async (): Promise<Sentence[]> => {
@@ -35,6 +54,62 @@ export const getSentences = async (): Promise<Sentence[]> => {
   }
 };
 
+// New helper to get sentences with pagination metadata
+export const getSentencesWithMeta = async (
+  params?: PaginatedParams
+): Promise<PaginatedResponse<Sentence>> => {
+  try {
+    const response = await axiosInstance.get("sentences", {
+      params: {
+        page: params?.page,
+        limit: params?.limit,
+      },
+    });
+    const data = response.data;
+
+    // If backend already returns the paginated shape
+    if (data && Array.isArray(data.data)) {
+      return {
+        count: data.count ?? data.data.length,
+        totalCount: data.totalCount ?? data.count ?? data.data.length,
+        totalPages: data.totalPages ?? 1,
+        currentPage: data.currentPage ?? params?.page ?? 1,
+        data: data.data,
+        ...data,
+      };
+    }
+
+    // If backend returns raw array, wrap it
+    if (Array.isArray(data)) {
+      return {
+        count: data.length,
+        totalCount: data.length,
+        totalPages: 1,
+        currentPage: params?.page ?? 1,
+        data,
+      };
+    }
+
+    console.warn("Unexpected data format from getSentencesWithMeta:", data);
+    return {
+      count: 0,
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: params?.page ?? 1,
+      data: [],
+    };
+  } catch (error: any) {
+    console.error("Error fetching sentences with meta:", error);
+    return {
+      count: 0,
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: params?.page ?? 1,
+      data: [],
+    };
+  }
+};
+
 export const getRecordings = async (): Promise<Recording[]> => {
   try {
     const response = await axiosInstance.get("recordings");
@@ -50,6 +125,60 @@ export const getRecordings = async (): Promise<Recording[]> => {
   } catch (error: any) {
     console.error("Error fetching recordings:", error);
     return [];
+  }
+};
+
+// New helper to get recordings with pagination metadata
+export const getRecordingsWithMeta = async (
+  params?: PaginatedParams
+): Promise<PaginatedResponse<Recording>> => {
+  try {
+    const response = await axiosInstance.get("recordings", {
+      params: {
+        page: params?.page,
+        limit: params?.limit,
+      },
+    });
+    const data = response.data;
+
+    if (data && Array.isArray(data.data)) {
+      return {
+        count: data.count ?? data.data.length,
+        totalCount: data.totalCount ?? data.count ?? data.data.length,
+        totalPages: data.totalPages ?? 1,
+        currentPage: data.currentPage ?? params?.page ?? 1,
+        data: data.data,
+        ...data,
+      };
+    }
+
+    if (Array.isArray(data)) {
+      return {
+        count: data.length,
+        totalCount: data.length,
+        totalPages: 1,
+        currentPage: params?.page ?? 1,
+        data,
+      };
+    }
+
+    console.warn("Unexpected data format from getRecordingsWithMeta:", data);
+    return {
+      count: 0,
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: params?.page ?? 1,
+      data: [],
+    };
+  } catch (error: any) {
+    console.error("Error fetching recordings with meta:", error);
+    return {
+      count: 0,
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: params?.page ?? 1,
+      data: [],
+    };
   }
 };
 
@@ -103,7 +232,24 @@ export const uploadRecording = async (
 ): Promise<UploadRecordingResponse> => {
   try {
     const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.webm");
+    
+    // Determine file extension based on blob type
+    let fileName = "recording.webm";
+    let mimeType = audioBlob.type || "audio/webm";
+    
+    if (mimeType.includes("wav")) {
+      fileName = "recording.wav";
+    } else if (mimeType.includes("mp4") || mimeType.includes("m4a")) {
+      fileName = "recording.m4a";
+    } else if (mimeType.includes("aac")) {
+      fileName = "recording.aac";
+    } else if (mimeType.includes("ogg")) {
+      fileName = "recording.ogg";
+    } else if (mimeType.includes("mp3") || mimeType.includes("mpeg")) {
+      fileName = "recording.mp3";
+    }
+    
+    formData.append("audio", audioBlob, fileName);
     formData.append("personId", personId);
     formData.append("sentenceId", sentenceId);
 

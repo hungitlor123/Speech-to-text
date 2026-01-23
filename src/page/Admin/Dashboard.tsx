@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Row, Col, Card, Spin } from 'antd';
 import { AudioOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined, TeamOutlined } from '@ant-design/icons';
-import { getRecordings, getSentences, Recording, Sentence } from '@/services/features/recordingSlice';
+import { getRecordingsWithMeta, getSentencesWithMeta, Recording, Sentence } from '@/services/features/recordingSlice';
 import Sidebar from '@/components/Sidebar';
-import { useDispatch } from 'react-redux';
-import { fetchUsers, fetchTopContributors } from '@/services/features/userSlice';
-import { AppDispatch } from '@/services/store/store';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchUsers } from '@/services/features/userSlice';
+import { AppDispatch, RootState } from '@/services/store/store';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, PieLabelRenderProps } from 'recharts';
 
 const { Title, Text } = Typography;
 
@@ -15,23 +15,38 @@ const Dashboard: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [loading, setLoading] = useState(true);
-  const [contributedSentences, setContributedSentences] = useState(0);
+  const [totalSentencesCount, setTotalSentencesCount] = useState(0);
+  const [totalRecordingsCount, setTotalRecordingsCount] = useState(0);
+  const [approvedCountFromApi, setApprovedCountFromApi] = useState<number | null>(null);
+  const [approvedDurationSecondsFromApi, setApprovedDurationSecondsFromApi] = useState<number | null>(null);
+  const [approvedDurationHoursFromApi, setApprovedDurationHoursFromApi] = useState<number | null>(null);
+  const usersTotalContributedSentences = useSelector(
+    (state: RootState) => state.user.usersTotalContributedSentences
+  );
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [recordingsData, sentencesData] = await Promise.all([
-          getRecordings(),
-          getSentences()
+        const [recordingsRes, sentencesRes] = await Promise.all([
+          getRecordingsWithMeta({ page: 1, limit: 20 }),
+          getSentencesWithMeta({ page: 1, limit: 20 })
         ]);
-        setRecordings(recordingsData);
-        setSentences(sentencesData);
-        
-        // Fetch contributed sentences count
-        const topContributors = await dispatch(fetchTopContributors()).unwrap();
-        const totalContributed = topContributors.reduce((sum, c) => sum + (c.totalSentences || 0), 0);
-        setContributedSentences(totalContributed);
+        setRecordings(recordingsRes.data);
+        setSentences(sentencesRes.data);
+        setTotalSentencesCount(sentencesRes.totalCount ?? sentencesRes.data.length);
+        setTotalRecordingsCount(recordingsRes.totalCount ?? recordingsRes.data.length);
+        if (typeof (recordingsRes as any).approvedCount === 'number') {
+          setApprovedCountFromApi((recordingsRes as any).approvedCount);
+        }
+        if (typeof (recordingsRes as any).approvedDurationSeconds === 'number') {
+          setApprovedDurationSecondsFromApi((recordingsRes as any).approvedDurationSeconds);
+        }
+        if (typeof (recordingsRes as any).approvedDurationHours === 'number') {
+          setApprovedDurationHoursFromApi((recordingsRes as any).approvedDurationHours);
+        }
+
+        // totalContributedSentences sẽ được lấy từ usersTotalContributedSentences (Redux)
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -44,15 +59,40 @@ const Dashboard: React.FC = () => {
   }, [dispatch]);
 
   // Tính toán các thống kê
-  const totalSentences = sentences.length; // Tổng số câu (text)
-  const totalRecorded = recordings.length; // Tổng số câu đã ghi âm
+  const totalSentences = totalSentencesCount || sentences.length; // Tổng số câu (text)
+  const totalRecorded = totalRecordingsCount || recordings.length; // Tổng số bản ghi âm
   const totalNotRecorded = totalSentences - totalRecorded; // Tổng số câu chưa ghi âm
-  const totalApproved = recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length; // Đã duyệt
-  // Tổng thời lượng (giây) và giờ (từ các bản ghi nếu có trường duration hoặc tương tự)
-  const totalDurationSeconds = recordings.reduce((sum: number, r: any) => {
-    return sum + (r.duration || r.Duration || r.TotalRecordingDuration || r.totalDurationSeconds || 0);
-  }, 0);
-  const totalDurationHours = totalDurationSeconds / 3600;
+  const totalApproved =
+    approvedCountFromApi !== null
+      ? approvedCountFromApi
+      : recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length; // Đã duyệt
+
+  // Tổng thời lượng (giây) và giờ của các câu đã duyệt
+  const totalDurationSeconds =
+    approvedDurationSecondsFromApi !== null
+      ? approvedDurationSecondsFromApi
+      : recordings.reduce(
+          (
+            sum: number,
+            r: Recording & {
+              duration?: number;
+              Duration?: number;
+              TotalRecordingDuration?: number;
+              totalDurationSeconds?: number;
+            }
+          ) => {
+            return sum + (r.duration || r.Duration || r.TotalRecordingDuration || r.totalDurationSeconds || 0);
+          },
+          0
+        );
+
+  const totalDurationHours =
+    approvedDurationHoursFromApi !== null
+      ? approvedDurationHoursFromApi
+      : totalDurationSeconds / 3600;
+
+  // Tổng câu đóng góp (từ /api/users meta)
+  const totalContributedSentences = usersTotalContributedSentences || 0;
 
   // Dữ liệu cho biểu đồ cột
   const barChartData = [
@@ -78,7 +118,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Đóng góp',
-      value: contributedSentences,
+      value: totalContributedSentences,
       fill: '#ec4899'
     }
   ];
@@ -93,10 +133,11 @@ const Dashboard: React.FC = () => {
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomLabel = (props: PieLabelRenderProps) => {
+    const { cx, cy, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 } = props;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
-    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+    const x = (cx || 0) + radius * Math.cos(-midAngle * Math.PI / 180);
+    const y = (cy || 0) + radius * Math.sin(-midAngle * Math.PI / 180);
 
     return (
       <text 
@@ -198,7 +239,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <Text className="text-xs text-gray-500 font-medium block mb-1">Câu đóng góp</Text>
-                        <Text className="text-2xl font-bold text-pink-600">{contributedSentences}</Text>
+                        <Text className="text-2xl font-bold text-pink-600">{totalContributedSentences}</Text>
                       </div>
                       <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center">
                         <TeamOutlined className="text-xl text-pink-600" />
