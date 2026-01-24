@@ -6,7 +6,6 @@ import {
   Mic,
   LogOut,
   Menu,
-  Trophy,
   FileText,
   type LucideIcon,
 } from 'lucide-react';
