@@ -30,14 +30,14 @@ const Sidebar = () => {
       { icon: Mic, label: 'Quản lý ghi âm', path: '/manager/recording' },
       { icon: FileText, label: 'Quản lý câu', path: '/manager/sentences' },
       { icon: Users, label: 'Người dùng', path: '/manager/users' },
-      { icon: Trophy, label: 'Top Đóng Góp', path: '/user/top-score' },
+      // { icon: Trophy, label: 'Top Đóng Góp', path: '/user/top-score' },
     ]
     : [
       { icon: LayoutDashboard, label: 'Tổng Quan', path: '/admin/dashboard' },
       { icon: Mic, label: 'Quản lý ghi âm', path: '/admin/recording' },
       { icon: FileText, label: 'Quản lý câu', path: '/admin/sentences' },
       { icon: Users, label: 'QL Tình nguyện viên', path: '/admin/users' },
-      { icon: Trophy, label: 'Top Đóng Góp', path: '/user/top-score' },
+      // { icon: Trophy, label: 'Top Đóng Góp', path: '/user/top-score' },
     ];
 
   const handleLogout = () => {
