@@ -49,6 +49,11 @@ export interface TopContributor {
   PersonID?: string;
   Email?: string;
 
+  // Raw API fields for mapping
+  TotalRecordings?: number;
+  TotalSentenceContributions?: number;
+  Recordings?: Array<{ SentenceID: string; Content: string; Duration?: number; RecordedAt?: string; AudioUrl?: string }>;
+
   // Mapped fields used by UI
   userEmail?: string;
   userId?: string | null;
