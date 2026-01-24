@@ -259,12 +259,7 @@ export const deleteUser = createAsyncThunk(
 export const fetchTopContributors = createAsyncThunk(
   "user/fetchTopContributors",
   async (): Promise<TopContributor[]> => {
-    // Call the general `users` endpoint and map API fields to the UI fields expected:
-    // - userId <- PersonID
-    // - userEmail <- Email
-    // - totalSentences <- TotalSentencesDone
-    // - TotalContributedByUser <- TotalContributedByUser
-    // - TotalContributedApproved <- TotalContributedApproved
+    // Backwards-compatible: if called without params, fetch first page (server default)
     const response = await axiosInstance.get("users");
     const payload: { data?: TopContributor[] } | TopContributor[] = response.data;
 
@@ -278,16 +273,16 @@ export const fetchTopContributors = createAsyncThunk(
       Email: item.Email ?? undefined,
       userEmail: item.Email ?? item.userEmail ?? "Ẩn danh",
       userId: item.PersonID ?? item.userId ?? null,
-      // Map API fields to the UI columns:
-      // - RecordingTotalCount (Số câu ghi âm) <- TotalSentencesDone
-      // - totalSentences (Số câu đóng góp) <- TotalContributedByUser
-      // - status1Count (Đã duyệt) <- TotalContributedApproved
-      RecordingTotalCount: Number(item.TotalSentencesDone ?? item.totalSentences ?? 0),
-      totalSentences: Number(item.TotalContributedByUser ?? item.totalSentences ?? 0),
-      TotalSentencesDone: Number(item.TotalSentencesDone ?? item.totalSentences ?? 0),
-      TotalContributedByUser: Number(item.TotalContributedByUser ?? 0),
-      TotalContributedApproved: Number(item.TotalContributedApproved ?? 0),
-      status1Count: Number(item.TotalContributedApproved ?? item.status1Count ?? 0),
+      // Use API fields requested by user:
+      // - Số câu ghi âm <- TotalRecordings
+      // - Số câu đóng góp <- TotalSentenceContributions
+      RecordingTotalCount: Number(item.TotalRecordings ?? item.TotalSentencesDone ?? item.Recordings?.length ?? 0),
+      totalSentences: Number(item.TotalSentenceContributions ?? item.TotalContributedByUser ?? item.totalSentences ?? 0),
+      TotalSentencesDone: Number(item.TotalRecordings ?? item.TotalSentencesDone ?? 0),
+      TotalContributedByUser: Number(item.TotalSentenceContributions ?? item.TotalContributedByUser ?? 0),
+      TotalContributedApproved: Number(item.TotalContributedByUser ?? 0),
+      // Set 'Đã duyệt' the same as TotalSentenceContributions per request
+      status1Count: Number(item.TotalSentenceContributions ?? item.TotalContributedByUser ?? item.TotalContributedApproved ?? item.status1Count ?? 0),
       status2Count: Number(item.status2Count ?? 0),
       status3Count: Number(item.status3Count ?? 0),
       createdAt: item.createdAt ?? null,
@@ -295,6 +290,64 @@ export const fetchTopContributors = createAsyncThunk(
     }));
   }
 );
+
+// New thunk: fetch top contributors with pagination metadata
+export interface FetchTopContributorsParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface FetchTopContributorsResponse {
+  items: TopContributor[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
+export const fetchTopContributorsPaginated = createAsyncThunk<
+  FetchTopContributorsResponse,
+  FetchTopContributorsParams | undefined
+>("user/fetchTopContributorsPaginated", async (params) => {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 20;
+  const response = await axiosInstance.get("users", { params: { page, limit } });
+  const data = response.data;
+
+  const rawArray: unknown[] = Array.isArray(data)
+    ? data
+    : (data && Array.isArray((data as { data?: unknown[] }).data)
+      ? (data as { data: unknown[] }).data
+      : []);
+
+  const items: TopContributor[] = rawArray.map((item: unknown) => {
+    const it = item as any;
+    return {
+      PersonID: it.PersonID ?? undefined,
+      Email: it.Email ?? undefined,
+      userEmail: it.Email ?? it.userEmail ?? "Ẩn danh",
+      userId: it.PersonID ?? it.userId ?? null,
+      RecordingTotalCount: Number(it.TotalRecordings ?? it.TotalSentencesDone ?? it.Recordings?.length ?? 0),
+      totalSentences: Number(it.TotalSentenceContributions ?? it.TotalContributedByUser ?? it.totalSentences ?? 0),
+      TotalSentencesDone: Number(it.TotalRecordings ?? it.TotalSentencesDone ?? 0),
+      TotalContributedByUser: Number(it.TotalSentenceContributions ?? it.TotalContributedByUser ?? 0),
+      TotalContributedApproved: Number(it.TotalContributedByUser ?? 0),
+      status1Count: Number(it.TotalSentenceContributions ?? it.TotalContributedByUser ?? it.TotalContributedApproved ?? it.status1Count ?? 0),
+      status2Count: Number(it.status2Count ?? 0),
+      status3Count: Number(it.status3Count ?? 0),
+      createdAt: it.createdAt ?? null,
+      RecordedSentences: it.RecordedSentences ?? [],
+    } as TopContributor;
+  });
+
+  return {
+    items,
+    totalCount: (data as { totalCount?: number })?.totalCount ?? items.length,
+    totalPages: (data as { totalPages?: number })?.totalPages ?? 1,
+    currentPage: (data as { currentPage?: number })?.currentPage ?? page,
+    limit: (data as { limit?: number })?.limit ?? limit,
+  };
+});
 
 // Async thunk to fetch available sentences (sentences with status === 1)
 // Filters out sentences that the user has already recorded

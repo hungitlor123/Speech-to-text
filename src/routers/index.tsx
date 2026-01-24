@@ -15,6 +15,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import { Route, Routes } from "react-router-dom";
 import LoginUser from "@/page/User/LoginUser";
 import UserProfile from "@/page/User/UserProfile";
+import TopScore from "@/page/User/TopScore";
 
 
 
@@ -43,6 +44,7 @@ const AppRouter = () => {
 
             {/* User Routes */}
             <Route path="/user/profile" element={<ProtectedRoute element={<UserProfile />} requiredRole="User" />} />
+            <Route path="/user/top-score" element={<ProtectedRoute element={<TopScore />} requiredRole="User" />} />
             
             {/* 404 - Catch all */}
             <Route path="*" element={<ErrorPage />} />
