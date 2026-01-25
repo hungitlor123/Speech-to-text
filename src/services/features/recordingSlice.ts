@@ -34,6 +34,8 @@ export interface PaginatedResponse<T> {
 export interface PaginatedParams {
   page?: number;
   limit?: number;
+  isApproved?: number | null; // For recordings filter
+  status?: number | null; // For sentences filter
 }
 
 export const getSentences = async (): Promise<Sentence[]> => {
@@ -59,11 +61,16 @@ export const getSentencesWithMeta = async (
   params?: PaginatedParams
 ): Promise<PaginatedResponse<Sentence>> => {
   try {
+    const requestParams: any = {
+      page: params?.page,
+      limit: params?.limit,
+    };
+    // Only add status param if it's not null/undefined
+    if (params?.status !== null && params?.status !== undefined) {
+      requestParams.status = params.status;
+    }
     const response = await axiosInstance.get("sentences", {
-      params: {
-        page: params?.page,
-        limit: params?.limit,
-      },
+      params: requestParams,
     });
     const data = response.data;
 
@@ -133,11 +140,16 @@ export const getRecordingsWithMeta = async (
   params?: PaginatedParams
 ): Promise<PaginatedResponse<Recording>> => {
   try {
+    const requestParams: any = {
+      page: params?.page,
+      limit: params?.limit,
+    };
+    // Only add isApproved param if it's not null/undefined
+    if (params?.isApproved !== null && params?.isApproved !== undefined) {
+      requestParams.isApproved = params.isApproved;
+    }
     const response = await axiosInstance.get("recordings", {
-      params: {
-        page: params?.page,
-        limit: params?.limit,
-      },
+      params: requestParams,
     });
     const data = response.data;
 

@@ -24,13 +24,21 @@ const ManagerSentences: React.FC = () => {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    fetchSentences(page, pageSize);
-  }, [page, pageSize]);
+    setPage(1); // Reset về trang 1 khi filter thay đổi
+  }, [statusFilter]);
 
-  const fetchSentences = async (pageParam: number, limitParam: number) => {
+  useEffect(() => {
+    fetchSentences(page, pageSize, statusFilter);
+  }, [page, pageSize, statusFilter]);
+
+  const fetchSentences = async (pageParam: number, limitParam: number, status?: number | null) => {
     setLoadingSentences(true);
     try {
-      const res = await getSentencesWithMeta({ page: pageParam, limit: limitParam });
+      const res = await getSentencesWithMeta({ 
+        page: pageParam, 
+        limit: limitParam,
+        status: status !== null && status !== undefined ? status : undefined
+      });
       setSentences(res.data);
       setTotalSentencesCount(res.totalCount ?? res.data.length);
 
@@ -72,7 +80,7 @@ const ManagerSentences: React.FC = () => {
     try {
       await deleteSentence(sentenceId);
       message.success('Xóa câu thành công');
-      fetchSentences(page, pageSize);
+      fetchSentences(page, pageSize, statusFilter);
     } catch (error) {
       console.error('Failed to delete sentence:', error);
       message.error('Xóa câu thất bại');
@@ -83,7 +91,7 @@ const ManagerSentences: React.FC = () => {
     try {
       await approveSentence(sentenceId);
       message.success('Duyệt câu thành công');
-      fetchSentences(page, pageSize);
+      fetchSentences(page, pageSize, statusFilter);
     } catch (error) {
       console.error('Failed to approve sentence:', error);
       message.error('Duyệt câu thất bại');
@@ -94,7 +102,7 @@ const ManagerSentences: React.FC = () => {
     try {
       await rejectSentence(sentenceId);
       message.success('Từ chối câu thành công');
-      fetchSentences(page, pageSize);
+      fetchSentences(page, pageSize, statusFilter);
     } catch (error) {
       console.error('Failed to reject sentence:', error);
       message.error('Từ chối câu thất bại');
@@ -161,7 +169,7 @@ const ManagerSentences: React.FC = () => {
       }
       setIsModalVisible(false);
       form.resetFields();
-      fetchSentences(page, pageSize);
+      fetchSentences(page, pageSize, statusFilter);
     } catch (error: any) {
       console.error('Full error object:', error);
       
@@ -415,6 +423,7 @@ const ManagerSentences: React.FC = () => {
                       placeholder="Chọn trạng thái"
                       style={{ width: 200 }}
                       allowClear
+                      value={statusFilter}
                       onChange={setStatusFilter}
                       options={[
                         { label: 'Tất cả', value: null },
@@ -460,7 +469,7 @@ const ManagerSentences: React.FC = () => {
               ) : sentences.length > 0 ? (
                 <Table
                   columns={sentenceColumns}
-                  dataSource={statusFilter !== null ? sentences.filter(s => s.Status === statusFilter) : sentences}
+                  dataSource={sentences}
                   rowKey="SentenceID"
                   pagination={{
                     current: page,

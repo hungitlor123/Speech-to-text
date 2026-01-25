@@ -19,18 +19,21 @@ const ManagerRecords: React.FC = () => {
   const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchRecordings(page, pageSize);
-  }, [page, pageSize]);
+    setPage(1); // Reset về trang 1 khi filter thay đổi
+  }, [recordingStatusFilter]);
 
   useEffect(() => {
-    setPage(1); // Reset về trang 1 khi filter thay đổi
-    fetchRecordings(1, pageSize, recordingStatusFilter);
-  }, [recordingStatusFilter, pageSize]);
+    fetchRecordings(page, pageSize, recordingStatusFilter);
+  }, [page, pageSize, recordingStatusFilter]);
 
   const fetchRecordings = async (pageParam: number, limitParam: number, status?: number | null) => {
     setLoadingRecordings(true);
     try {
-      const res = await getRecordingsWithMeta({ page: pageParam, limit: limitParam });
+      const res = await getRecordingsWithMeta({ 
+        page: pageParam, 
+        limit: limitParam,
+        isApproved: status !== null && status !== undefined ? status : undefined
+      });
       setRecordings(res.data);
       setTotalRecordingsCount(res.totalCount ?? res.data.length);
       
@@ -44,15 +47,6 @@ const ManagerRecords: React.FC = () => {
       }
       if (typeof resAny.rejectedCount === 'number') {
         setRejectedCountFromApi(resAny.rejectedCount);
-      }
-      
-      // Nếu có filter status, filter ở client-side (hoặc có thể gọi API khác nếu backend hỗ trợ)
-      if (status !== null && status !== undefined) {
-        const filtered = res.data.filter((r) => {
-          const rStatus = typeof r.IsApproved === 'number' ? r.IsApproved : (r.IsApproved ? 1 : 0);
-          return rStatus === status;
-        });
-        setRecordings(filtered);
       }
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
