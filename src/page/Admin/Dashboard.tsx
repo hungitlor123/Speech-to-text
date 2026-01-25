@@ -97,11 +97,6 @@ const Dashboard: React.FC = () => {
   // Dữ liệu cho biểu đồ cột
   const barChartData = [
     {
-      name: 'Tổng câu',
-      value: totalSentences,
-      fill: '#3b82f6'
-    },
-    {
       name: 'Đã ghi âm',
       value: totalRecorded,
       fill: '#10b981'
@@ -123,15 +118,14 @@ const Dashboard: React.FC = () => {
     }
   ];
 
-  // Dữ liệu cho biểu đồ tròn (4 cái đầu)
+  // Dữ liệu cho biểu đồ tròn
   const pieChartData = [
-    { name: 'Tổng câu', value: totalSentences, color: '#3b82f6' },
     { name: 'Đã ghi âm', value: totalRecorded, color: '#10b981' },
     { name: 'Chưa ghi âm', value: totalNotRecorded, color: '#f59e0b' },
     { name: 'Đã duyệt', value: totalApproved, color: '#8b5cf6' }
   ];
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+  const COLORS = ['#10b981', '#f59e0b', '#8b5cf6'];
 
   const renderCustomLabel = (props: PieLabelRenderProps) => {
     const { cx, cy, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 } = props;
