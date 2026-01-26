@@ -137,7 +137,14 @@ const ErrorPage: React.FC = () => {
             </div>
           </div>
         </div>
-
+{/* Additional Info
+            <div className="pt-8 border-t border-gray-200">
+              <Text className="text-sm text-gray-500">
+                Nếu vấn đề vẫn tiếp diễn, vui lòng liên hệ với bộ phận hỗ trợ
+              </Text>
+            </div>
+          </div>
+        </div> */}
         {/* Decorative Elements */}
         <div className="mt-8 text-center">
           <Text className="text-sm text-gray-400">
