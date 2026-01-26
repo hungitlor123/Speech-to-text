@@ -20,6 +20,11 @@ export interface Recording {
   Content?: string | null;
 }
 
+
+
+
+
+
 // Generic paginated response (backend supports page & limit)
 export interface PaginatedResponse<T> {
   count: number;
