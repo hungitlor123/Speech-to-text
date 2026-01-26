@@ -41,6 +41,7 @@ export interface PaginatedParams {
   limit?: number;
   isApproved?: number | null; // For recordings filter
   status?: number | null; // For sentences filter
+  email?: string; // For recordings search by email
 }
 
 export const getSentences = async (): Promise<Sentence[]> => {
@@ -152,6 +153,10 @@ export const getRecordingsWithMeta = async (
     // Only add isApproved param if it's not null/undefined
     if (params?.isApproved !== null && params?.isApproved !== undefined) {
       requestParams.isApproved = params.isApproved;
+    }
+    // Add email param if provided
+    if (params?.email && params.email.trim() !== '') {
+      requestParams.email = params.email.trim();
     }
     const response = await axiosInstance.get("recordings", {
       params: requestParams,

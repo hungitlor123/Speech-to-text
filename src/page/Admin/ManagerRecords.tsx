@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select } from 'antd';
-import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select, Input } from 'antd';
+import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { getRecordingsWithMeta, approveRecording, rejectRecording, downloadSentences, Recording } from '@/services/features/recordingSlice';
 
@@ -11,6 +11,7 @@ const ManagerRecords: React.FC = () => {
   const [loadingRecordings, setLoadingRecordings] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | null>(null);
+  const [emailSearch, setEmailSearch] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -21,19 +22,20 @@ const ManagerRecords: React.FC = () => {
 
   useEffect(() => {
     setPage(1); // Reset về trang 1 khi filter thay đổi
-  }, [recordingStatusFilter]);
+  }, [recordingStatusFilter, emailSearch]);
 
   useEffect(() => {
-    fetchRecordings(page, pageSize, recordingStatusFilter);
-  }, [page, pageSize, recordingStatusFilter]);
+    fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
+  }, [page, pageSize, recordingStatusFilter, emailSearch]);
 
-  const fetchRecordings = async (pageParam: number, limitParam: number, status?: number | null) => {
+  const fetchRecordings = async (pageParam: number, limitParam: number, status?: number | null, email?: string) => {
     setLoadingRecordings(true);
     try {
       const res = await getRecordingsWithMeta({ 
         page: pageParam, 
         limit: limitParam,
-        isApproved: status !== null && status !== undefined ? status : undefined
+        isApproved: status !== null && status !== undefined ? status : undefined,
+        email: email && email.trim() !== '' ? email.trim() : undefined
       });
       setRecordings(res.data);
       setTotalRecordingsCount(res.totalCount ?? res.data.length);
@@ -72,7 +74,7 @@ const ManagerRecords: React.FC = () => {
   const handleApproveRecording = async (recordingId: string) => {
     try {
       await approveRecording(recordingId);
-      fetchRecordings(page, pageSize, recordingStatusFilter);
+      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
     } catch (error) {
       console.error('Failed to approve recording:', error);
     }
@@ -81,7 +83,7 @@ const ManagerRecords: React.FC = () => {
   const handleRejectRecording = async (recordingId: string) => {
     try {
       await rejectRecording(recordingId);
-      fetchRecordings(page, pageSize, recordingStatusFilter);
+      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
     } catch (error) {
       console.error('Failed to reject recording:', error);
     }
@@ -289,8 +291,8 @@ const ManagerRecords: React.FC = () => {
           {/* Table */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
+              <div className="flex justify-between items-center flex-wrap gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</span>
                   <Select
                     placeholder="Chọn trạng thái"
@@ -305,6 +307,18 @@ const ManagerRecords: React.FC = () => {
                       { label: 'Bị từ chối', value: 2 },
 
                     ]}
+                  />
+                  <Input
+                    placeholder="Tìm kiếm theo email"
+                    prefix={<SearchOutlined />}
+                    value={emailSearch}
+                    onChange={(e) => setEmailSearch(e.target.value)}
+                    allowClear
+                    style={{ width: 250 }}
+                    onPressEnter={() => {
+                      setPage(1);
+                      fetchRecordings(1, pageSize, recordingStatusFilter, emailSearch);
+                    }}
                   />
                 </div>
                 <Space size="small">
