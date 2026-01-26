@@ -259,35 +259,59 @@ export const deleteUser = createAsyncThunk(
 export const fetchTopContributors = createAsyncThunk(
   "user/fetchTopContributors",
   async (): Promise<TopContributor[]> => {
-    // Backwards-compatible: if called without params, fetch first page (server default)
-    const response = await axiosInstance.get("users");
-    const payload: { data?: TopContributor[] } | TopContributor[] = response.data;
+    // Fetch top contributors from the dedicated endpoint
+    const response = await axiosInstance.get("users/top-contributors", {
+      params: { page: 1, limit: 10 },
+    });
+    const data = response.data;
 
-    // Normalize to an array of items
-    const items: TopContributor[] = Array.isArray(payload)
-      ? payload
-      : (payload && Array.isArray(payload.data) ? payload.data : []);
+    // Normalize to an array of items from data.data or raw array
+    const rawArray: unknown[] = Array.isArray(data)
+      ? data
+      : (data && Array.isArray((data as { data?: unknown[] }).data)
+          ? (data as { data: unknown[] }).data
+          : []);
 
-    return items.map((item) => ({
-      PersonID: item.PersonID ?? undefined,
-      Email: item.Email ?? undefined,
-      userEmail: item.Email ?? item.userEmail ?? "Ẩn danh",
-      userId: item.PersonID ?? item.userId ?? null,
-      // Use API fields requested by user:
-      // - Số câu ghi âm <- TotalRecordings
-      // - Số câu đóng góp <- TotalSentenceContributions
-      RecordingTotalCount: Number(item.TotalRecordings ?? item.TotalSentencesDone ?? item.Recordings?.length ?? 0),
-      totalSentences: Number(item.TotalSentenceContributions ?? item.TotalContributedByUser ?? item.totalSentences ?? 0),
-      TotalSentencesDone: Number(item.TotalRecordings ?? item.TotalSentencesDone ?? 0),
-      TotalContributedByUser: Number(item.TotalSentenceContributions ?? item.TotalContributedByUser ?? 0),
-      TotalContributedApproved: Number(item.TotalContributedByUser ?? 0),
-      // Set 'Đã duyệt' the same as TotalSentenceContributions per request
-      status1Count: Number(item.TotalSentenceContributions ?? item.TotalContributedByUser ?? item.TotalContributedApproved ?? item.status1Count ?? 0),
-      status2Count: Number(item.status2Count ?? 0),
-      status3Count: Number(item.status3Count ?? 0),
-      createdAt: item.createdAt ?? null,
-      RecordedSentences: item.RecordedSentences ?? item.RecordedSentences,
-    }));
+    return rawArray.map((item: unknown) => {
+      const it = item as any;
+      return {
+        // Basic identity fields
+        PersonID: it.userId ?? it.PersonID ?? undefined,
+        Email: it.email ?? it.Email ?? undefined,
+        userEmail: it.email ?? it.Email ?? it.userEmail ?? "Ẩn danh",
+        userId: it.userId ?? it.PersonID ?? null,
+
+        // Recording / contribution stats
+        RecordingTotalCount: Number(
+          it.TotalRecordings ??
+          it.RecordingTotalCount ??
+          it.TotalSentencesDone ??
+          0
+        ),
+        TotalSentencesDone: Number(
+          it.TotalRecordings ?? it.TotalSentencesDone ?? 0
+        ),
+        TotalContributedByUser: Number(
+          it.TotalContributedSentences ?? it.TotalContributedByUser ?? 0
+        ),
+        TotalContributedApproved: Number(
+          it.ApprovedRecordings ?? it.TotalContributedApproved ?? 0
+        ),
+
+        // 'Đã duyệt' = ApprovedRecordings from new API
+        status1Count: Number(
+          it.ApprovedRecordings ??
+          it.TotalContributedApproved ??
+          it.status1Count ??
+          0
+        ),
+        status2Count: Number(it.status2Count ?? 0),
+        status3Count: Number(it.status3Count ?? 0),
+
+        createdAt: it.createdAt ?? it.CreatedAt ?? null,
+        RecordedSentences: it.RecordedSentences ?? [],
+      } as TopContributor;
+    });
   }
 );
 
@@ -311,31 +335,60 @@ export const fetchTopContributorsPaginated = createAsyncThunk<
 >("user/fetchTopContributorsPaginated", async (params) => {
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 20;
-  const response = await axiosInstance.get("users", { params: { page, limit } });
+  // Call the new top-contributors endpoint with pagination
+  const response = await axiosInstance.get("users/top-contributors", {
+    params: { page, limit },
+  });
   const data = response.data;
 
   const rawArray: unknown[] = Array.isArray(data)
     ? data
     : (data && Array.isArray((data as { data?: unknown[] }).data)
-      ? (data as { data: unknown[] }).data
-      : []);
+        ? (data as { data: unknown[] }).data
+        : []);
 
   const items: TopContributor[] = rawArray.map((item: unknown) => {
     const it = item as any;
     return {
-      PersonID: it.PersonID ?? undefined,
-      Email: it.Email ?? undefined,
-      userEmail: it.Email ?? it.userEmail ?? "Ẩn danh",
-      userId: it.PersonID ?? it.userId ?? null,
-      RecordingTotalCount: Number(it.TotalRecordings ?? it.TotalSentencesDone ?? it.Recordings?.length ?? 0),
-      totalSentences: Number(it.TotalSentenceContributions ?? it.TotalContributedByUser ?? it.totalSentences ?? 0),
-      TotalSentencesDone: Number(it.TotalRecordings ?? it.TotalSentencesDone ?? 0),
-      TotalContributedByUser: Number(it.TotalSentenceContributions ?? it.TotalContributedByUser ?? 0),
-      TotalContributedApproved: Number(it.TotalContributedByUser ?? 0),
-      status1Count: Number(it.TotalSentenceContributions ?? it.TotalContributedByUser ?? it.TotalContributedApproved ?? it.status1Count ?? 0),
+      // Basic identity fields
+      PersonID: it.userId ?? it.PersonID ?? undefined,
+      Email: it.email ?? it.Email ?? undefined,
+      userEmail: it.email ?? it.Email ?? it.userEmail ?? "Ẩn danh",
+      userId: it.userId ?? it.PersonID ?? null,
+
+      // Recording / contribution stats
+      RecordingTotalCount: Number(
+        it.TotalRecordings ??
+        it.RecordingTotalCount ??
+        it.TotalSentencesDone ??
+        0
+      ),
+      totalSentences: Number(
+        it.TotalContributedSentences ??
+        it.TotalSentenceContributions ??
+        it.TotalContributedByUser ??
+        it.totalSentences ??
+        0
+      ),
+      TotalSentencesDone: Number(
+        it.TotalRecordings ?? it.TotalSentencesDone ?? 0
+      ),
+      TotalContributedByUser: Number(
+        it.TotalContributedSentences ?? it.TotalContributedByUser ?? 0
+      ),
+      TotalContributedApproved: Number(
+        it.ApprovedRecordings ?? it.TotalContributedApproved ?? 0
+      ),
+      // 'Đã duyệt' = ApprovedRecordings from new API
+      status1Count: Number(
+        it.ApprovedRecordings ??
+        it.TotalContributedApproved ??
+        it.status1Count ??
+        0
+      ),
       status2Count: Number(it.status2Count ?? 0),
       status3Count: Number(it.status3Count ?? 0),
-      createdAt: it.createdAt ?? null,
+      createdAt: it.createdAt ?? it.CreatedAt ?? null,
       RecordedSentences: it.RecordedSentences ?? [],
     } as TopContributor;
   });
