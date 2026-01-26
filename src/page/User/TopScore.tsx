@@ -28,20 +28,21 @@ const TopScore: React.FC = () => {
   const [topScores, setTopScores] = useState<TopScorer[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetchTopScoresData(page, pageSize);
   }, [page, pageSize]);
 
-  const fetchTopScoresData = async (p = 1, limit = 20) => {
+  const fetchTopScoresData = async (p = 1, limit = 10) => {
     setLoading(true);
     try {
       const resp = await dispatch(fetchTopContributorsPaginated({ page: p, limit })).unwrap();
-      const sorted = resp.items.sort((a: any, b: any) => (b.TotalContributedByUser || 0) - (a.TotalContributedByUser || 0));
-      setTopScores(sorted as TopScorer[]);
-      setTotal(resp.totalCount || sorted.length);
+      const items = resp.items || [];
+      // Giữ nguyên thứ tự do backend sort sẵn theo TotalRecordings
+      setTopScores(items as TopScorer[]);
+      setTotal(resp.totalCount ?? items.length);
     } catch (error) {
       console.error('Failed to fetch top scores:', error);
     } finally {
