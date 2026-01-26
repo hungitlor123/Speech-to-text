@@ -61,9 +61,8 @@ const RecordingPage: React.FC = () => {
 
     // Fetch available sentences when component mounts or userInfo changes
     if (mode === 'existing') {
-      // Always fetch sentences, use userId if available, otherwise use empty string
-      const personId = userInfo?.userId || '';
-      dispatch(fetchAvailableSentences(personId));
+      // Call the API endpoint (personId is not needed for the new endpoint)
+      dispatch(fetchAvailableSentences(''));
     }
   }, [userInfo, dispatch, navigate, mode]);
 
@@ -142,19 +141,17 @@ const RecordingPage: React.FC = () => {
           await new Promise(resolve => setTimeout(resolve, 100));
 
           // Refresh available sentences to get updated list and move to next sentence
-          if (userInfo?.userId) {
-            const updatedSentences = await dispatch(fetchAvailableSentences(userInfo.userId)).unwrap();
+          const updatedSentences = await dispatch(fetchAvailableSentences('')).unwrap();
 
-            if (updatedSentences.length > 0) {
-              // Move to next available sentence
-              const nextSentence = updatedSentences[0];
-              dispatch(setCurrentSentence(nextSentence.Content));
-              dispatch(setCurrentSentenceId(nextSentence.SentenceID));
-              dispatch(setCurrentRecordingIndex(newRecordingIndex + 1));
-            } else {
-              // No more sentences available
-              message.info('Đã hết câu gợi ý. Bạn có thể tiếp tục ghi âm hoặc nhấn Submit để hoàn thành.');
-            }
+          if (updatedSentences.length > 0) {
+            // Move to next available sentence
+            const nextSentence = updatedSentences[0];
+            dispatch(setCurrentSentence(nextSentence.Content));
+            dispatch(setCurrentSentenceId(nextSentence.SentenceID));
+            dispatch(setCurrentRecordingIndex(newRecordingIndex + 1));
+          } else {
+            // No more sentences available
+            message.info('Đã hết câu gợi ý. Bạn có thể tiếp tục ghi âm hoặc nhấn Submit để hoàn thành.');
           }
         }
       } else {

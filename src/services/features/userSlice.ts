@@ -1,10 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axiosInstance from "@/services/constant/axiosInstance";
-import {
-  getSentences,
-  getRecordingsByPersonId,
-  Sentence,
-} from "./recordingSlice";
 
 export interface UserInfo {
   email: string;
@@ -355,43 +350,23 @@ export const fetchTopContributorsPaginated = createAsyncThunk<
 });
 
 // Async thunk to fetch available sentences (sentences with status === 1)
-// Filters out sentences that the user has already recorded
+// Calls the approved-without-recordings endpoint
 export const fetchAvailableSentences = createAsyncThunk(
   "user/fetchAvailableSentences",
-  async (personId: string): Promise<AvailableSentence[]> => {
+  async (_personId: string): Promise<AvailableSentence[]> => {
     try {
-      // Fetch sentences
-      const sentences = await getSentences();
-
-      // Filter sentences with status === 1 (Được duyệt - có thể đi voice)
-      const approvedSentences = sentences.filter(
-        (sentence: Sentence) => sentence.Status === 1
-      );
-
-      // If personId is provided, filter out sentences that user has already recorded
-      let availableSentences = approvedSentences;
-      if (personId) {
-        try {
-          const userRecordings = await getRecordingsByPersonId(personId);
-          
-          const recordedSentenceIds = new Set(
-            userRecordings.map((recording) => recording.SentenceID)
-          );
-          
-          // Filter out sentences that have been recorded by this user
-          availableSentences = approvedSentences.filter(
-            (sentence) => !recordedSentenceIds.has(sentence.SentenceID)
-          );
-        } catch (error) {
-          console.error("Error fetching user recordings:", error);
-          // If error occurs, return all approved sentences as fallback
-        }
-      }
-
-      // Randomly shuffle and return available sentences
-      const shuffled = [...availableSentences].sort(() => Math.random() - 0.5);
-
-      return shuffled.map((s: Sentence) => ({
+      // Call the new API endpoint directly
+      const response = await axiosInstance.get("sentences/approved-without-recordings", {
+        params: { page: 1, limit: 20 }
+      });
+      
+      const responseData = response.data;
+      
+      // Handle the response structure: { count, totalCount, totalPages, currentPage, data: [...] }
+      const sentences = responseData?.data || [];
+      
+      // Map to AvailableSentence format
+      return sentences.map((s: any) => ({
         SentenceID: s.SentenceID,
         Content: s.Content,
         CreatedAt: s.CreatedAt,
