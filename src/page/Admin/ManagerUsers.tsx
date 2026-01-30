@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination } from 'antd';
-import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination, DatePicker } from 'antd';
+import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined, SearchOutlined, CloseOutlined } from '@ant-design/icons';
+import { Dayjs } from 'dayjs';
 import Sidebar from '@/components/Sidebar';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '@/services/features/userSlice';
@@ -35,6 +36,20 @@ const ManagerUsers: React.FC = () => {
   const [selectedContributorName, setSelectedContributorName] = useState('');
   const [contributedSentencesModalPage, setContributedSentencesModalPage] = useState(1);
   const [contributedSentencesModalPageSize] = useState(10);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
+
+  // Handle date filter change
+  const handleDateFilterChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
+    setDateRange(dates || [null, null]);
+    const fromDate = dates?.[0] ? dates[0].toISOString() : undefined;
+    const toDate = dates?.[1] ? dates[1].toISOString() : undefined;
+    dispatch(fetchUsers({ page: 1, limit: usersLimit, fromDate, toDate }));
+  };
+
+  const handleClearDateFilter = () => {
+    setDateRange([null, null]);
+    dispatch(fetchUsers({ page: 1, limit: usersLimit }));
+  };
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -187,12 +202,12 @@ const ManagerUsers: React.FC = () => {
     },
   ];
 
-  // Thống kê từ API meta (ưu tiên) hoặc tính từ mảng users (fallback)
-  const totalUsers = usersTotal || users.length;
-  const maleCount = usersTotalMale || users.filter((u) => u.Gender === 'Male').length;
-  const femaleCount = usersTotalFemale || users.filter((u) => u.Gender === 'Female').length;
-  const totalSentencesDone = usersTotalCompletedSentences || users.reduce((sum, u) => sum + (u.TotalSentencesDone || 0), 0);
-  const totalContributedByUsers = usersTotalContributedSentences || users.reduce((sum, u) => sum + (u.TotalContributedByUser || 0), 0);
+  // Thống kê từ API (đã được backend tính toán với bộ lọc ngày)
+  const totalUsers = usersTotal;
+  const maleCount = usersTotalMale;
+  const femaleCount = usersTotalFemale;
+  const totalSentencesDone = usersTotalCompletedSentences;
+  const totalContributedByUsers = usersTotalContributedSentences;
 
   return (
     <div className="flex">
@@ -295,6 +310,41 @@ const ManagerUsers: React.FC = () => {
               </div>
 
               {/* Filters Section */}
+              <div className="flex flex-wrap items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-2">
+                  <SearchOutlined className="text-blue-500 text-lg" />
+                  <span className="font-medium text-gray-700">Lọc theo ngày recording :</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <DatePicker.RangePicker
+                    showTime={{ format: 'HH:mm' }}
+                    format="DD/MM/YYYY HH:mm"
+                    placeholder={['Từ ngày', 'Đến ngày']}
+                    value={dateRange}
+                    onChange={handleDateFilterChange}
+                    className="w-[280px] !border-blue-300 !rounded-lg"
+                    allowClear={false}
+                  />
+                </div>
+                {dateRange[0] && dateRange[1] && (
+                  <Button
+                    type="text"
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={handleClearDateFilter}
+                    className="flex items-center gap-1 hover:!text-red-600"
+                  >
+                    Xóa lọc
+                  </Button>
+                )}
+                <div className="ml-auto text-sm text-gray-500">
+                  {usersTotal > 0 ? (
+                    <span className="text-blue-600 font-medium">{usersTotal} người dùng</span>
+                  ) : (
+                    <span className="text-gray-400 italic">Không có người dùng nào</span>
+                  )}
+                </div>
+              </div>
 
 
               {usersLoading ? (
@@ -314,7 +364,9 @@ const ManagerUsers: React.FC = () => {
                     showSizeChanger: true,
                     responsive: true,
                     onChange: (page, pageSize) => {
-                      dispatch(fetchUsers({ page, limit: pageSize }));
+                      const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+                      const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+                      dispatch(fetchUsers({ page, limit: pageSize, fromDate, toDate }));
                     },
                   }}
                   scroll={{ x: 800 }}

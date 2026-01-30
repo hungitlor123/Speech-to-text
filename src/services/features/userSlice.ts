@@ -137,6 +137,8 @@ const initialState: UserState = {
 export interface FetchUsersParams {
   page?: number;
   limit?: number;
+  fromDate?: string;
+  toDate?: string;
 }
 
 export interface FetchUsersResponse {
@@ -157,9 +159,15 @@ export const fetchUsers = createAsyncThunk<
 >("user/fetchUsers", async (params) => {
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 10;
+  const fromDate = params?.fromDate;
+  const toDate = params?.toDate;
+
+  const queryParams: Record<string, any> = { page, limit };
+  if (fromDate) queryParams.fromDate = fromDate;
+  if (toDate) queryParams.toDate = toDate;
 
   const response = await axiosInstance.get("users", {
-    params: { page, limit },
+    params: queryParams,
   });
   const data = response.data;
 
