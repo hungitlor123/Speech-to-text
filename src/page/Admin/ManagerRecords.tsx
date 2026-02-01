@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select, Input } from 'antd';
+import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select, Input, message } from 'antd';
 import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { getRecordingsWithMeta, approveRecording, rejectRecording, downloadSentences, Recording } from '@/services/features/recordingSlice';
+import axiosInstance from '@/services/constant/axiosInstance';
 
 const { Title, Text } = Typography;
 
@@ -19,6 +20,9 @@ const ManagerRecords: React.FC = () => {
   const [approvedCountFromApi, setApprovedCountFromApi] = useState<number | null>(null);
   const [pendingCountFromApi, setPendingCountFromApi] = useState<number | null>(null);
   const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
+
+  // Approve all loading state
+  const [approvingAll, setApprovingAll] = useState(false);
 
   useEffect(() => {
     setPage(1); // Reset về trang 1 khi filter thay đổi
@@ -86,6 +90,31 @@ const ManagerRecords: React.FC = () => {
       fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
     } catch (error) {
       console.error('Failed to reject recording:', error);
+    }
+  };
+
+  const handleApproveAll = async () => {
+    if (!emailSearch || emailSearch.trim() === '') {
+      message.warning('Vui lòng nhập email để duyệt');
+      return;
+    }
+    setApprovingAll(true);
+    try {
+      const response = await axiosInstance.post('users/approve-recordings', { email: emailSearch });
+      const data = response.data;
+      
+      // Hiển thị thông tin chi tiết từ API response
+      message.success({
+        content: data.message || `Đã duyệt ${data.modifiedCount} bản ghi thành công`,
+        duration: 4,
+      });
+      
+      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
+    } catch (error) {
+      console.error('Failed to approve all recordings:', error);
+      message.error('Không thể duyệt tất cả bản ghi');
+    } finally {
+      setApprovingAll(false);
     }
   };
 
@@ -321,8 +350,18 @@ const ManagerRecords: React.FC = () => {
                     }}
                   />
                 </div>
-                <Space size="small">
-                  <Button
+                 <Space size="small">
+                   <Button
+                     type="default"
+                     icon={<CheckCircleOutlined />}
+                     onClick={handleApproveAll}
+                     loading={approvingAll}
+                     className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
+                     disabled={!emailSearch || emailSearch.trim() === ''}
+                   >
+                     Duyệt recording theo user filter
+                   </Button>
+                   <Button
                     icon={<DownloadOutlined />}
                     onClick={handleDownloadAll}
                     loading={downloading}
