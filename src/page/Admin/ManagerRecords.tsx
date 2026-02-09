@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select, Input, message } from 'antd';
-import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select, Input, message, Popconfirm, Modal, Form } from 'antd';
+import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined, SearchOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
-import { getRecordingsWithMeta, approveRecording, rejectRecording, downloadSentences, Recording } from '@/services/features/recordingSlice';
+import { getRecordingsWithMeta, approveRecording, rejectRecording, deleteRecording, updateSentence, downloadSentences, Recording } from '@/services/features/recordingSlice';
 import axiosInstance from '@/services/constant/axiosInstance';
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const ManagerRecords: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -24,6 +25,11 @@ const ManagerRecords: React.FC = () => {
   // Approve all loading state
   const [approvingAll, setApprovingAll] = useState(false);
 
+  // Edit sentence modal state
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
+  const [form] = Form.useForm();
+
   useEffect(() => {
     setPage(1); // Reset về trang 1 khi filter thay đổi
   }, [recordingStatusFilter, emailSearch]);
@@ -35,8 +41,8 @@ const ManagerRecords: React.FC = () => {
   const fetchRecordings = async (pageParam: number, limitParam: number, status?: number | null, email?: string) => {
     setLoadingRecordings(true);
     try {
-      const res = await getRecordingsWithMeta({ 
-        page: pageParam, 
+      const res = await getRecordingsWithMeta({
+        page: pageParam,
         limit: limitParam,
         isApproved: status !== null && status !== undefined ? status : undefined,
         email: email && email.trim() !== '' ? email.trim() : undefined
@@ -93,6 +99,46 @@ const ManagerRecords: React.FC = () => {
     }
   };
 
+  const handleDeleteRecording = async (recordingId: string) => {
+    try {
+      await deleteRecording(recordingId);
+      message.success('Recording và sentence đã được xóa thành công');
+      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
+    } catch (error) {
+      console.error('Failed to delete recording:', error);
+      message.error('Xóa recording thất bại');
+    }
+  };
+
+  // Edit sentence handlers
+  const handleOpenEditSentence = (sentenceId: string, currentContent: string | null | undefined) => {
+    setEditingSentenceId(sentenceId);
+    form.setFieldsValue({ content: currentContent || '' });
+    setIsEditModalVisible(true);
+  };
+
+  const handleSaveEditSentence = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingSentenceId) {
+        await updateSentence(editingSentenceId, values.content);
+        message.success('Cập nhật câu thành công');
+        setIsEditModalVisible(false);
+        form.resetFields();
+        fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
+      }
+    } catch (error) {
+      console.error('Failed to update sentence:', error);
+      message.error('Cập nhật câu thất bại');
+    }
+  };
+
+  const handleCancelEditSentence = () => {
+    setIsEditModalVisible(false);
+    form.resetFields();
+    setEditingSentenceId(null);
+  };
+
   const handleApproveAll = async () => {
     if (!emailSearch || emailSearch.trim() === '') {
       message.warning('Vui lòng nhập email để duyệt');
@@ -102,13 +148,13 @@ const ManagerRecords: React.FC = () => {
     try {
       const response = await axiosInstance.post('users/approve-recordings', { email: emailSearch });
       const data = response.data;
-      
+
       // Hiển thị thông tin chi tiết từ API response
       message.success({
         content: data.message || `Đã duyệt ${data.modifiedCount} bản ghi thành công`,
         duration: 4,
       });
-      
+
       fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
     } catch (error) {
       console.error('Failed to approve all recordings:', error);
@@ -186,7 +232,7 @@ const ManagerRecords: React.FC = () => {
     {
       title: 'Hành động',
       key: 'action',
-      width: 280,
+      width: 420,
       render: (_: unknown, record: Recording) => (
         <Space size="small">
           <Button
@@ -220,6 +266,34 @@ const ManagerRecords: React.FC = () => {
               </Button>
             </>
           )}
+          {(record.IsApproved === 0 || record.IsApproved === 1) && (
+            <Button
+              icon={<EditOutlined />}
+              size="small"
+              onClick={() => handleOpenEditSentence(record.SentenceID, record.Content)}
+              className="rounded-full bg-orange-500 hover:bg-orange-600 border-orange-500 text-white"
+              style={{ backgroundColor: '#f97316', borderColor: '#f97316' }}
+            >
+              Sửa câu
+            </Button>
+          )}
+          <Popconfirm
+            title="Xóa recording này?"
+            description="Bạn có chắc chắn muốn xóa recording và sentence này không?"
+            onConfirm={() => handleDeleteRecording(record.RecordingID)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              size="small"
+              className="rounded-full"
+            >
+              Xóa
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -350,18 +424,18 @@ const ManagerRecords: React.FC = () => {
                     }}
                   />
                 </div>
-                 <Space size="small">
-                   <Button
-                     type="default"
-                     icon={<CheckCircleOutlined />}
-                     onClick={handleApproveAll}
-                     loading={approvingAll}
-                     className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
-                     disabled={!emailSearch || emailSearch.trim() === ''}
-                   >
-                     Duyệt recording theo user filter
-                   </Button>
-                   <Button
+                <Space size="small">
+                  <Button
+                    type="default"
+                    icon={<CheckCircleOutlined />}
+                    onClick={handleApproveAll}
+                    loading={approvingAll}
+                    className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-600"
+                    disabled={!emailSearch || emailSearch.trim() === ''}
+                  >
+                    Duyệt recording theo user filter
+                  </Button>
+                  <Button
                     icon={<DownloadOutlined />}
                     onClick={handleDownloadAll}
                     loading={downloading}
@@ -402,6 +476,26 @@ const ManagerRecords: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal for editing sentence */}
+      <Modal
+        title="Sửa câu sentence"
+        open={isEditModalVisible}
+        onOk={handleSaveEditSentence}
+        onCancel={handleCancelEditSentence}
+        okText="Lưu"
+        cancelText="Hủy"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="content"
+            label="Nội dung câu"
+            rules={[{ required: true, message: 'Vui lòng nhập nội dung câu' }]}
+          >
+            <TextArea rows={4} placeholder="Nhập nội dung câu..." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
