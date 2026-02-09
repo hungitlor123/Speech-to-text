@@ -28,7 +28,6 @@ const ManagerRecords: React.FC = () => {
   // Edit sentence modal state
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
-  const [editingSentenceContent, setEditingSentenceContent] = useState<string>('');
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -114,7 +113,6 @@ const ManagerRecords: React.FC = () => {
   // Edit sentence handlers
   const handleOpenEditSentence = (sentenceId: string, currentContent: string | null | undefined) => {
     setEditingSentenceId(sentenceId);
-    setEditingSentenceContent(currentContent || '');
     form.setFieldsValue({ content: currentContent || '' });
     setIsEditModalVisible(true);
   };
@@ -139,7 +137,6 @@ const ManagerRecords: React.FC = () => {
     setIsEditModalVisible(false);
     form.resetFields();
     setEditingSentenceId(null);
-    setEditingSentenceContent('');
   };
 
   const handleApproveAll = async () => {
