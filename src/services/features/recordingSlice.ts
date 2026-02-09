@@ -377,6 +377,15 @@ export const rejectRecording = async (
   }
 };
 
+// Delete Recording
+export const deleteRecording = async (recordingId: string): Promise<void> => {
+  try {
+    await axiosInstance.delete(`recordings/${recordingId}`);
+  } catch (error: any) {
+    throw error.response?.data || { message: "Delete recording failed" };
+  }
+};
+
 // Create user sentence
 export interface CreateUserSentenceRequest {
   email: string;
