@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination, DatePicker } from 'antd';
-import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined, SearchOutlined, CloseOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination, DatePicker, Checkbox, Input } from 'antd';
+import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined, SearchOutlined, CloseOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Dayjs } from 'dayjs';
 import Sidebar from '@/components/Sidebar';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers, deleteUser } from '@/services/features/userSlice';
-import { getTopRecorders, TopRecorder } from '@/services/features/recordingSlice';
+import { fetchUsers, deleteUser, searchUserByEmail } from '@/services/features/userSlice';
+import { getTopRecorders, TopRecorder, downloadRecordings } from '@/services/features/recordingSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 
 const { Title, Text } = Typography;
@@ -26,6 +26,7 @@ const ManagerUsers: React.FC = () => {
   } = useSelector((state: RootState) => state.user);
   const [topRecorders, setTopRecorders] = useState<TopRecorder[]>([]);
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
+  const [downloadingRecordings, setDownloadingRecordings] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
   const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>>([]);
   const [selectedUserName, setSelectedUserName] = useState('');
@@ -37,23 +38,108 @@ const ManagerUsers: React.FC = () => {
   const [contributedSentencesModalPage, setContributedSentencesModalPage] = useState(1);
   const [contributedSentencesModalPageSize] = useState(10);
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
+  const [emailFilter, setEmailFilter] = useState('');
+  const [allUsersModalVisible, setAllUsersModalVisible] = useState(false);
+  const [allUsersModalPage, setAllUsersModalPage] = useState(1);
+  const [allUsersModalPageSize] = useState(10);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [userSearchFilter, setUserSearchFilter] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Handle date filter change
   const handleDateFilterChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     setDateRange(dates || [null, null]);
     const fromDate = dates?.[0] ? dates[0].toISOString() : undefined;
     const toDate = dates?.[1] ? dates[1].toISOString() : undefined;
-    dispatch(fetchUsers({ page: 1, limit: usersLimit, fromDate, toDate }));
+    const email = emailFilter.trim() ? emailFilter.trim() : undefined;
+    dispatch(fetchUsers({ 
+      page: 1, 
+      limit: usersLimit, 
+      fromDate, 
+      toDate,
+      email,
+    }));
   };
 
   const handleClearDateFilter = () => {
     setDateRange([null, null]);
-    dispatch(fetchUsers({ page: 1, limit: usersLimit }));
+    setEmailFilter('');
+    dispatch(fetchUsers({ 
+      page: 1, 
+      limit: usersLimit,
+    }));
+  };
+
+  const handleEmailFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmailFilter(value);
+  };
+
+  const handleApplyEmailFilter = () => {
+    const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+    const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+    const email = emailFilter.trim() ? emailFilter.trim() : undefined;
+    dispatch(fetchUsers({ 
+      page: 1, 
+      limit: usersLimit, 
+      fromDate, 
+      toDate,
+      email,
+    }));
+  };
+
+  const handleClearEmailFilter = () => {
+    setEmailFilter('');
+    const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+    const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+    dispatch(fetchUsers({ 
+      page: 1, 
+      limit: usersLimit, 
+      fromDate, 
+      toDate,
+    }));
+  };
+
+  const handleUserSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUserSearchFilter(value);
+
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    if (!value.trim()) {
+      // If empty, reset filters
+      const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+      const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+      dispatch(fetchUsers({ 
+        page: 1, 
+        limit: usersLimit, 
+        fromDate, 
+        toDate
+      }));
+      return;
+    }
+
+    // Set new timeout for debounce (500ms)
+    const newTimeout = setTimeout(() => {
+      dispatch(searchUserByEmail({ email: value }));
+    }, 500);
+
+    setSearchTimeout(newTimeout);
   };
 
   useEffect(() => {
     dispatch(fetchUsers());
     fetchTopRecorders();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
   }, [dispatch]);
 
   const fetchTopRecorders = async () => {
@@ -65,6 +151,45 @@ const ManagerUsers: React.FC = () => {
       console.error('Failed to fetch top recorders:', error);
     } finally {
       setLoadingTopRecorders(false);
+    }
+  };
+
+  const handleDownloadRecordings = async () => {
+    if (selectedUserIds.length === 0) {
+      message.warning('Vui lòng chọn ít nhất một người dùng');
+      return;
+    }
+
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u.PersonID));
+    const emails = selectedUsers.map(u => u.Email);
+    const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+    const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+
+    setDownloadingRecordings(true);
+    try {
+      const blob = await downloadRecordings({
+        emails,
+        dateFrom: fromDate,
+        dateTo: toDate,
+        isApproved: 1,
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `recordings_${new Date().toISOString().split('T')[0]}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      message.success('Tải xuống thành công');
+    } catch (error) {
+      console.error('Failed to download recordings:', error);
+      message.error('Tải xuống thất bại');
+    } finally {
+      setDownloadingRecordings(false);
     }
   };
 
@@ -90,6 +215,34 @@ const ManagerUsers: React.FC = () => {
     setContributedSentencesModalVisible(true);
   };
   const columns = [
+    {
+      title: <Checkbox 
+        checked={selectedUserIds.length === users.length && users.length > 0}
+        indeterminate={selectedUserIds.length > 0 && selectedUserIds.length < users.length}
+        onChange={(e) => {
+          if (e.target.checked) {
+            setSelectedUserIds(users.map(u => u.PersonID));
+          } else {
+            setSelectedUserIds([]);
+          }
+        }}
+      />,
+      width: 50,
+      key: 'checkbox',
+      render: (_: unknown, record: typeof users[number]) => (
+        <Checkbox 
+          checked={selectedUserIds.includes(record.PersonID)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedUserIds([...selectedUserIds, record.PersonID]);
+            } else {
+              setSelectedUserIds(selectedUserIds.filter(id => id !== record.PersonID));
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
     {
       title: 'STT',
       width: 60,
@@ -337,12 +490,52 @@ const ManagerUsers: React.FC = () => {
                     Xóa lọc
                   </Button>
                 )}
-                <div className="ml-auto text-sm text-gray-500">
-                  {usersTotal > 0 ? (
-                    <span className="text-blue-600 font-medium">{usersTotal} người dùng</span>
-                  ) : (
-                    <span className="text-gray-400 italic">Không có người dùng nào</span>
+                <div className="flex items-center gap-2 border-l border-gray-300 pl-4">
+                  <span className="font-medium text-gray-700">Lọc theo email:</span>
+                  <Input
+                    placeholder="Nhập email..."
+                    value={emailFilter}
+                    onChange={handleEmailFilterChange}
+                    onPressEnter={handleApplyEmailFilter}
+                    className="w-[220px] !border-blue-300 !rounded-lg"
+                    allowClear
+                  />
+                  <Button
+                    type="primary"
+                    onClick={handleApplyEmailFilter}
+                    className="!bg-blue-500"
+                  >
+                    Tìm
+                  </Button>
+                  {emailFilter && (
+                    <Button
+                      type="text"
+                      danger
+                      icon={<CloseOutlined />}
+                      onClick={handleClearEmailFilter}
+                      className="flex items-center gap-1 hover:!text-red-600"
+                    >
+                      Xóa
+                    </Button>
                   )}
+                </div>
+                <div className="ml-auto flex items-center gap-3">
+                  <div className="text-sm text-gray-500">
+                    {usersTotal > 0 ? (
+                      <span className="text-blue-600 font-medium">{usersTotal} người dùng</span>
+                    ) : (
+                      <span className="text-gray-400 italic">Không có người dùng nào</span>
+                    )}
+                  </div>
+                  <Button 
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    onClick={handleDownloadRecordings}
+                    loading={downloadingRecordings}
+                    className="!bg-green-600 !border-green-600 hover:!bg-green-700"
+                  >
+                    Download recording
+                  </Button>
                 </div>
               </div>
 
@@ -366,7 +559,14 @@ const ManagerUsers: React.FC = () => {
                     onChange: (page, pageSize) => {
                       const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
                       const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
-                      dispatch(fetchUsers({ page, limit: pageSize, fromDate, toDate }));
+                      const email = emailFilter.trim() ? emailFilter.trim() : undefined;
+                      dispatch(fetchUsers({ 
+                        page, 
+                        limit: pageSize, 
+                        fromDate, 
+                        toDate,
+                        email,
+                      }));
                     },
                   }}
                   scroll={{ x: 800 }}
@@ -620,6 +820,117 @@ const ManagerUsers: React.FC = () => {
           </>
         ) : (
           <Empty description="Chưa có câu nào được đóng góp" />
+        )}
+      </Modal>
+
+      {/* Modal hiển thị danh sách tất cả người dùng */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={selectedUserIds.length === users.length && users.length > 0}
+              indeterminate={selectedUserIds.length > 0 && selectedUserIds.length < users.length}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedUserIds(users.map(u => u.PersonID));
+                } else {
+                  setSelectedUserIds([]);
+                }
+              }}
+            />
+            <span>Danh Sách Tất Cả Người Dùng</span>
+          </div>
+        }
+        open={allUsersModalVisible}
+        onCancel={() => {
+          setAllUsersModalVisible(false);
+          setAllUsersModalPage(1);
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setAllUsersModalVisible(false);
+            setAllUsersModalPage(1);
+          }}>
+            Đóng
+          </Button>
+        ]}
+        width={900}
+      >
+        {users.length > 0 ? (
+          <>
+            <div className="space-y-3">
+              {users
+                .slice((allUsersModalPage - 1) * allUsersModalPageSize, allUsersModalPage * allUsersModalPageSize)
+                .map((user, index) => (
+                  <div
+                    key={user.PersonID}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (selectedUserIds.includes(user.PersonID)) {
+                        setSelectedUserIds(selectedUserIds.filter(id => id !== user.PersonID));
+                      } else {
+                        setSelectedUserIds([...selectedUserIds, user.PersonID]);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <Checkbox
+                          checked={selectedUserIds.includes(user.PersonID)}
+                          onChange={() => {
+                            if (selectedUserIds.includes(user.PersonID)) {
+                              setSelectedUserIds(selectedUserIds.filter(id => id !== user.PersonID));
+                            } else {
+                              setSelectedUserIds([...selectedUserIds, user.PersonID]);
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold text-sm">{(allUsersModalPage - 1) * allUsersModalPageSize + index + 1}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-900 font-bold">{user.Email}</p>
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <Tag color={user.Gender === 'Male' ? 'blue' : 'pink'}>
+                            {user.Gender === 'Male' ? '♂️ Nam' : '♀️ Nữ'}
+                          </Tag>
+                          <span className="text-xs text-gray-600">
+                            📝 Hoàn thành: {user.TotalSentencesDone || 0} câu
+                          </span>
+                          <span className="text-xs text-gray-600">
+                            ⏱️ Thời lượng: {user.TotalRecordingDuration?.toFixed(2) || 0}s
+                          </span>
+                          <span className="text-xs text-gray-600">
+                            🎯 Đóng góp: {user.TotalContributedByUser || 0} câu
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            📅 {user.CreatedAt ? new Date(user.CreatedAt).toLocaleDateString('vi-VN') : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            {users.length > allUsersModalPageSize && (
+              <div className="mt-4 flex justify-center">
+                <Pagination
+                  current={allUsersModalPage}
+                  pageSize={allUsersModalPageSize}
+                  total={users.length}
+                  onChange={(page) => setAllUsersModalPage(page)}
+                  showSizeChanger={false}
+                  showQuickJumper={false}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <Spin spinning={usersLoading}>
+            <Empty description="Không có người dùng nào" />
+          </Spin>
         )}
       </Modal>
     </div>

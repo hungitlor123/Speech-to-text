@@ -441,6 +441,33 @@ export const downloadSentences = async (
   }
 };
 
+// Download recordings by emails and date range
+export interface DownloadRecordingsParams {
+  emails: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  isApproved?: number;
+}
+
+export const downloadRecordings = async (
+  params: DownloadRecordingsParams
+): Promise<Blob> => {
+  try {
+    const response = await axiosInstance.get<Blob>("recordings/download", {
+      params: {
+        emails: params.emails.join(','),
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        isApproved: params.isApproved ?? 1,
+      },
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Download recordings failed" };
+  }
+};
+
 // Get top recorders
 export interface TopRecorder {
   userId: string;
