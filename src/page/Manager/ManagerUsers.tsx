@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination, DatePicker } from 'antd';
-import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined, SearchOutlined, CloseOutlined } from '@ant-design/icons';
+import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination, DatePicker, Checkbox, Input } from 'antd';
+import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined, SearchOutlined, CloseOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Dayjs } from 'dayjs';
 
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '@/services/features/userSlice';
-import { getTopRecorders, TopRecorder } from '@/services/features/recordingSlice';
+import { getTopRecorders, TopRecorder, downloadRecordings } from '@/services/features/recordingSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 import Sidebar from '@/components/Sidebar';
 
@@ -27,6 +27,8 @@ const ManagerUsers: React.FC = () => {
   } = useSelector((state: RootState) => state.user);
   const [topRecorders, setTopRecorders] = useState<TopRecorder[]>([]);
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [downloadingRecordings, setDownloadingRecordings] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
   const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>>([]);
   const [selectedUserEmail, setSelectedUserEmail] = useState('');
@@ -38,6 +40,7 @@ const ManagerUsers: React.FC = () => {
   const [contributedSentencesModalPage, setContributedSentencesModalPage] = useState(1);
   const [contributedSentencesModalPageSize] = useState(10);
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
+  const [emailFilter, setEmailFilter] = useState('');
 
   // Handle date filter change
   const handleDateFilterChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
@@ -49,6 +52,21 @@ const ManagerUsers: React.FC = () => {
 
   const handleClearDateFilter = () => {
     setDateRange([null, null]);
+    const email = emailFilter.trim() ? emailFilter.trim() : undefined;
+    dispatch(fetchUsers({ page: 1, limit: usersLimit, email }));
+  };
+
+  const handleEmailFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmailFilter(e.target.value);
+  };
+
+  const handleApplyEmailFilter = () => {
+    const email = emailFilter.trim() ? emailFilter.trim() : undefined;
+    dispatch(fetchUsers({ page: 1, limit: usersLimit, email }));
+  };
+
+  const handleClearEmailFilter = () => {
+    setEmailFilter('');
     dispatch(fetchUsers({ page: 1, limit: usersLimit }));
   };
 
@@ -66,6 +84,45 @@ const ManagerUsers: React.FC = () => {
       console.error('Failed to fetch top recorders:', error);
     } finally {
       setLoadingTopRecorders(false);
+    }
+  };
+
+  const handleDownloadRecordings = async () => {
+    if (selectedUserIds.length === 0) {
+      message.warning('Vui lòng chọn ít nhất một người dùng');
+      return;
+    }
+
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u.PersonID));
+    const emails = selectedUsers.map(u => u.Email);
+    const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+    const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+
+    setDownloadingRecordings(true);
+    try {
+      const blob = await downloadRecordings({
+        emails,
+        dateFrom: fromDate,
+        dateTo: toDate,
+        isApproved: 1,
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `recordings_${new Date().toISOString().split('T')[0]}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      message.success('Tải xuống thành công');
+    } catch (error) {
+      console.error('Failed to download recordings:', error);
+      message.error('Tải xuống thất bại');
+    } finally {
+      setDownloadingRecordings(false);
     }
   };
 
@@ -93,6 +150,34 @@ const ManagerUsers: React.FC = () => {
   };
 
   const columns = [
+    {
+      title: <Checkbox 
+        checked={selectedUserIds.length === users.length && users.length > 0}
+        indeterminate={selectedUserIds.length > 0 && selectedUserIds.length < users.length}
+        onChange={(e) => {
+          if (e.target.checked) {
+            setSelectedUserIds(users.map(u => u.PersonID));
+          } else {
+            setSelectedUserIds([]);
+          }
+        }}
+      />,
+      width: 50,
+      key: 'checkbox',
+      render: (_: any, record: any) => (
+        <Checkbox 
+          checked={selectedUserIds.includes(record.PersonID)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedUserIds([...selectedUserIds, record.PersonID]);
+            } else {
+              setSelectedUserIds(selectedUserIds.filter(id => id !== record.PersonID));
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
     {
       title: 'STT',
       width: 60,
@@ -340,6 +425,35 @@ const ManagerUsers: React.FC = () => {
                     Xóa lọc
                   </Button>
                 )}
+                <div className="flex items-center gap-2 border-l border-gray-300 pl-4">
+                  <span className="font-medium text-gray-700">Lọc theo email:</span>
+                  <Input
+                    placeholder="Nhập email..."
+                    value={emailFilter}
+                    onChange={handleEmailFilterChange}
+                    onPressEnter={handleApplyEmailFilter}
+                    className="w-[220px] !border-blue-300 !rounded-lg"
+                    allowClear
+                  />
+                  <Button
+                    type="primary"
+                    onClick={handleApplyEmailFilter}
+                    className="!bg-blue-500"
+                  >
+                    Tìm
+                  </Button>
+                  {emailFilter && (
+                    <Button
+                      type="text"
+                      danger
+                      icon={<CloseOutlined />}
+                      onClick={handleClearEmailFilter}
+                      className="flex items-center gap-1 hover:!text-red-600"
+                    >
+                      Xóa
+                    </Button>
+                  )}
+                </div>
                 <div className="ml-auto text-sm text-gray-500">
                   {usersTotal > 0 ? (
                     <span className="text-blue-600 font-medium">{usersTotal} người dùng</span>
@@ -347,6 +461,15 @@ const ManagerUsers: React.FC = () => {
                     <span className="text-gray-400 italic">Không có người dùng nào</span>
                   )}
                 </div>
+                <Button 
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={handleDownloadRecordings}
+                  loading={downloadingRecordings}
+                  className="!bg-green-600 !border-green-600 hover:!bg-green-700"
+                >
+                  Download recording
+                </Button>
               </div>
 
               {usersLoading ? (

@@ -139,6 +139,7 @@ export interface FetchUsersParams {
   limit?: number;
   fromDate?: string;
   toDate?: string;
+  email?: string;
 }
 
 export interface FetchUsersResponse {
@@ -161,10 +162,12 @@ export const fetchUsers = createAsyncThunk<
   const limit = params?.limit ?? 10;
   const fromDate = params?.fromDate;
   const toDate = params?.toDate;
+  const email = params?.email;
 
   const queryParams: Record<string, any> = { page, limit };
   if (fromDate) queryParams.fromDate = fromDate;
   if (toDate) queryParams.toDate = toDate;
+  if (email) queryParams.email = email;
 
   const response = await axiosInstance.get("users", {
     params: queryParams,
@@ -233,6 +236,40 @@ export const fetchUsers = createAsyncThunk<
     totalCompletedSentences:
       (data as { totalCompletedSentences?: number })?.totalCompletedSentences ?? 0,
   };
+});
+
+// Async thunk to search user by email
+export interface SearchUserByEmailParams {
+  email: string;
+}
+
+export interface SearchUserByEmailResponse {
+  count: number;
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  searchEmail: string;
+  data: Array<{
+    id: string;
+    email: string;
+    gender: string;
+    role: string;
+    createdAt: string;
+    recordingCount: number;
+    approvedCount: number;
+    pendingCount: number;
+    totalDuration: number;
+  }>;
+}
+
+export const searchUserByEmail = createAsyncThunk<
+  SearchUserByEmailResponse,
+  SearchUserByEmailParams
+>("user/searchUserByEmail", async (params) => {
+  const response = await axiosInstance.get("users/search/by-email", {
+    params: { email: params.email },
+  });
+  return response.data as SearchUserByEmailResponse;
 });
 
 // Async thunk to create user
