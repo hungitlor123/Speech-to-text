@@ -4,7 +4,7 @@ import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutline
 import { Dayjs } from 'dayjs';
 import Sidebar from '@/components/Sidebar';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers, deleteUser, searchUserByEmail } from '@/services/features/userSlice';
+import { fetchUsers, deleteUser } from '@/services/features/userSlice';
 import { getTopRecorders, TopRecorder, downloadRecordings } from '@/services/features/recordingSlice';
 import { AppDispatch, RootState } from '@/services/store/store';
 
@@ -43,8 +43,6 @@ const ManagerUsers: React.FC = () => {
   const [allUsersModalPage, setAllUsersModalPage] = useState(1);
   const [allUsersModalPageSize] = useState(10);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [userSearchFilter, setUserSearchFilter] = useState('');
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Handle date filter change
   const handleDateFilterChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
@@ -100,46 +98,9 @@ const ManagerUsers: React.FC = () => {
     }));
   };
 
-  const handleUserSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setUserSearchFilter(value);
-
-    // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    if (!value.trim()) {
-      // If empty, reset filters
-      const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
-      const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
-      dispatch(fetchUsers({ 
-        page: 1, 
-        limit: usersLimit, 
-        fromDate, 
-        toDate
-      }));
-      return;
-    }
-
-    // Set new timeout for debounce (500ms)
-    const newTimeout = setTimeout(() => {
-      dispatch(searchUserByEmail({ email: value }));
-    }, 500);
-
-    setSearchTimeout(newTimeout);
-  };
-
   useEffect(() => {
     dispatch(fetchUsers());
     fetchTopRecorders();
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
   }, [dispatch]);
 
   const fetchTopRecorders = async () => {
