@@ -19,6 +19,9 @@ const ManagerRecords: React.FC = () => {
   const [pendingCountFromApi, setPendingCountFromApi] = useState<number | null>(null);
   const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
 
+  // Refresh key for force re-render
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     setPage(1); // Reset về trang 1 khi filter thay đổi
   }, [recordingStatusFilter, emailSearch]);
@@ -93,7 +96,8 @@ const ManagerRecords: React.FC = () => {
       title: 'Email',
       dataIndex: 'Email',
       key: 'Email',
-      width: 200,
+      width: 150,
+      ellipsis: true,
       render: (email: string | null | undefined) => {
         return <span className="font-medium text-gray-900">{email || 'Ẩn danh'}</span>;
       },
@@ -102,7 +106,8 @@ const ManagerRecords: React.FC = () => {
       title: 'Nội dung câu',
       dataIndex: 'Content',
       key: 'Content',
-      width: 300,
+      width: 600,
+      ellipsis: true,
       render: (content: string | null | undefined) => {
         return <span className="text-gray-900">{content || 'Unknown'}</span>;
       },
@@ -112,7 +117,7 @@ const ManagerRecords: React.FC = () => {
       title: 'Trạng thái',
       dataIndex: 'IsApproved',
       key: 'IsApproved',
-      width: 150,
+      width: 120,
       render: (isApproved: number | boolean | null) => {
         const statusConfig: { [key: number]: { color: string; label: string } } = {
           0: { color: 'gold', label: 'Chờ duyệt' },
@@ -128,7 +133,9 @@ const ManagerRecords: React.FC = () => {
     {
       title: 'Hành động',
       key: 'action',
-      width: 280,
+      width: 220,
+      fixed: 'right' as const,
+      align: 'right' as const,
       render: (_: unknown, record: Recording) => (
         <Space size="small">
           <Button
@@ -303,19 +310,24 @@ const ManagerRecords: React.FC = () => {
                 </div>
               ) : recordings.length > 0 ? (
                 <Table
+                  key={`table-${refreshKey}-${pageSize}`}
+                  size="small"
                   columns={recordingColumns}
                   dataSource={recordings}
-                  rowKey="RecordingID"
+                  rowKey={(record, index) => `${record.RecordingID}-${index}-${refreshKey}`}
                   pagination={{
                     current: page,
-                    pageSize,
+                    pageSize: pageSize,
                     total: totalRecordingsCount,
                     pageSizeOptions: [10, 20, 50, 100],
                     showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} bản ghi`,
                     responsive: true,
                     onChange: (p, size) => {
                       setPage(p);
                       setPageSize(size);
+                      setRefreshKey(prev => prev + 1);
                     },
                   }}
                   scroll={{ x: 800 }}
