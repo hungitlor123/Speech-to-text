@@ -43,6 +43,12 @@ const ManagerUsers: React.FC = () => {
   const [allUsersModalPage, setAllUsersModalPage] = useState(1);
   const [allUsersModalPageSize] = useState(10);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  
+  // Local state for pagination - cập nhật ngay lập tức khi user thay đổi
+  const [localPageSize, setLocalPageSize] = useState(usersLimit);
+  
+  // Force re-render when pageSize changes
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Handle date filter change
   const handleDateFilterChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
@@ -102,6 +108,12 @@ const ManagerUsers: React.FC = () => {
     dispatch(fetchUsers());
     fetchTopRecorders();
   }, [dispatch]);
+
+  // Sync localPageSize với Redux khi usersLimit thay đổi (sau khi API trả về)
+  useEffect(() => {
+    setLocalPageSize(usersLimit);
+    setRefreshKey(prev => prev + 1);
+  }, [usersLimit]);
 
   const fetchTopRecorders = async () => {
     setLoadingTopRecorders(true);
@@ -506,32 +518,50 @@ const ManagerUsers: React.FC = () => {
                   <Spin size="large" />
                 </div>
               ) : users.length > 0 ? (
-                <Table
-                  columns={columns}
-                  dataSource={users}
-                  rowKey="PersonID"
-                  pagination={{
-                    current: usersPage,
-                    pageSize: usersLimit,
-                    total: usersTotal,
-                    pageSizeOptions: [10, 20, 50, 100],
-                    showSizeChanger: true,
-                    responsive: true,
-                    onChange: (page, pageSize) => {
-                      const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
-                      const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
-                      const email = emailFilter.trim() ? emailFilter.trim() : undefined;
-                      dispatch(fetchUsers({ 
-                        page, 
-                        limit: pageSize, 
-                        fromDate, 
-                        toDate,
-                        email,
-                      }));
-                    },
-                  }}
-                  scroll={{ x: 800 }}
-                />
+                <div>
+                  <Table
+                    key={`table-${refreshKey}-${localPageSize}`}
+                    columns={columns}
+                    dataSource={users}
+                    rowKey={(record, index) => `${record.PersonID}-${index}-${refreshKey}`}
+                    pagination={{
+                      pageSize: localPageSize,
+                      showSizeChanger: false,
+                      hideOnSinglePage: true,
+                    }}
+                    scroll={{ x: 800 }}
+                  />
+                  <div className="flex justify-end mt-4">
+                    <Pagination
+                      key={`pagination-${refreshKey}`}
+                      current={usersPage}
+                      pageSize={localPageSize}
+                      total={usersTotal}
+                      pageSizeOptions={[10, 20, 50, 100]}
+                      showSizeChanger
+                      onChange={(page, pageSize) => {
+                        // Cập nhật local state ngay lập tức để UI hiển thị đúng
+                        setLocalPageSize(pageSize);
+                        
+                        // Force re-render
+                        setRefreshKey(prev => prev + 1);
+                        
+                        const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+                        const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+                        const email = emailFilter.trim() ? emailFilter.trim() : undefined;
+                        
+                        dispatch(fetchUsers({ 
+                          page: pageSize !== localPageSize ? 1 : page, 
+                          limit: pageSize, 
+                          fromDate, 
+                          toDate,
+                          email,
+                        }));
+                      }}
+                      showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} người dùng`}
+                    />
+                  </div>
+                </div>
               ) : (
                 <Empty description="Chưa có người dùng nào" style={{ marginTop: 50 }} />
               )}

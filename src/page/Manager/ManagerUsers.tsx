@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Typography, Table, Spin, Empty, Row, Col, Tag, Button, Popconfirm, message, Space, Modal, Pagination, DatePicker, Checkbox, Input } from 'antd';
 import { ManOutlined, WomanOutlined, TeamOutlined, DeleteOutlined, TrophyOutlined, FileTextOutlined, SearchOutlined, CloseOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Dayjs } from 'dayjs';
@@ -28,6 +28,12 @@ const ManagerUsers: React.FC = () => {
   const [topRecorders, setTopRecorders] = useState<TopRecorder[]>([]);
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  
+  // Local state for pagination - cập nhật ngay lập tức khi user thay đổi
+  const [localPageSize, setLocalPageSize] = useState(usersLimit);
+  
+  // Force re-render when pageSize changes
+  const [refreshKey, setRefreshKey] = useState(0);
   const [downloadingRecordings, setDownloadingRecordings] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
   const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>>([]);
@@ -74,6 +80,12 @@ const ManagerUsers: React.FC = () => {
     dispatch(fetchUsers());
     fetchTopRecorders();
   }, [dispatch]);
+
+  // Sync localPageSize với Redux khi usersLimit thay đổi (sau khi API trả về)
+  useEffect(() => {
+    setLocalPageSize(usersLimit);
+    setRefreshKey(prev => prev + 1);
+  }, [usersLimit]);
 
   const fetchTopRecorders = async () => {
     setLoadingTopRecorders(true);
@@ -477,25 +489,48 @@ const ManagerUsers: React.FC = () => {
                   <Spin size="large" />
                 </div>
               ) : users.length > 0 ? (
-                <Table
-                  columns={columns}
-                  dataSource={users}
-                  rowKey="PersonID"
-                  pagination={{
-                    current: usersPage,
-                    pageSize: usersLimit,
-                    total: usersTotal,
-                    pageSizeOptions: [10, 20, 50, 100],
-                    showSizeChanger: true,
-                    responsive: true,
-                    onChange: (page, pageSize) => {
-                      const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
-                      const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
-                      dispatch(fetchUsers({ page, limit: pageSize, fromDate, toDate }));
-                    },
-                  }}
-                  scroll={{ x: 800 }}
-                />
+                <div>
+                  <Table
+                    key={`table-${refreshKey}-${localPageSize}`}
+                    columns={columns}
+                    dataSource={users}
+                    rowKey={(record, index) => `${record.PersonID}-${index}-${refreshKey}`}
+                    pagination={{
+                      pageSize: localPageSize,
+                      showSizeChanger: false,
+                      hideOnSinglePage: true,
+                    }}
+                    scroll={{ x: 800 }}
+                  />
+                  <div className="flex justify-end mt-4">
+                    <Pagination
+                      key={`pagination-${refreshKey}`}
+                      current={usersPage}
+                      pageSize={localPageSize}
+                      total={usersTotal}
+                      pageSizeOptions={[10, 20, 50, 100]}
+                      showSizeChanger
+                      onChange={(page, pageSize) => {
+                        // Cập nhật local state ngay lập tức để UI hiển thị đúng
+                        setLocalPageSize(pageSize);
+                        
+                        // Force re-render
+                        setRefreshKey(prev => prev + 1);
+                        
+                        const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
+                        const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
+                        
+                        dispatch(fetchUsers({ 
+                          page: pageSize !== localPageSize ? 1 : page, 
+                          limit: pageSize, 
+                          fromDate, 
+                          toDate 
+                        }));
+                      }}
+                      showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} người dùng`}
+                    />
+                  </div>
+                </div>
               ) : (
                 <Empty description="Chưa có người dùng nào" style={{ marginTop: 50 }} />
               )}
